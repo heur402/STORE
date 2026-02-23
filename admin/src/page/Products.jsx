@@ -51,11 +51,11 @@ const Products = () => {
 
       <motion.div variants={container} className="space-y-5 grid grid-cols-1 gap-4 sm:gap-6">
         <ProductTable />
-        <div className="space-x-3 bg-transparent grid grid-cols-2">
+        <div className="space-x-3 space-y-3 bg-transparent grid lg:grid-cols-2 grid-cols-1">
           <StockPieChart data={stockStatus} darkMode={darkMode} styles={styles} />
-          <div className="space-y-2">
+          <div className="space-y-3 p-1">
             <TasksCard tasks={tasks} styles={styles} />
-            <TasksCard tasks={tasks} styles={styles} />
+            <ActivityFeed activities={activities} styles={styles} />
           </div>
         </div>
         
