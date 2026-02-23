@@ -1,0 +1,138 @@
+// src/pages/Products.jsx
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import StatsGrid from "../page/dashboard/StatsGrid";
+import StockPieChart from "../page/dashboard/StockPieChart";
+import { dashboardStats, stockStatus, recentProducts } from "../assets/assets";
+import { container, item } from "../page/dashboard/utils";
+
+const Products = () => {
+  const [products, setProducts] = useState(recentProducts);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  const darkMode = document.documentElement.classList.contains("dark");
+
+  const styles = {
+    card:
+      "bg-white dark:bg-gray-800 rounded-2xl shadow p-6 transition-colors duration-300",
+    text: {
+      primary: "text-gray-800 dark:text-white",
+      secondary: "text-gray-500 dark:text-gray-400",
+    },
+  };
+
+  /* =========================
+     DELETE PRODUCT
+  ========================== */
+
+  const handleDelete = (id) => {
+    if (!window.confirm("Delete this product?")) return;
+    setProducts(products.filter((p) => p.id !== id));
+  };
+
+  /* =========================
+     SAVE EDIT
+  ========================== */
+
+  const handleSave = (updatedProduct) => {
+    setProducts(
+      products.map((p) =>
+        p.id === updatedProduct.id ? updatedProduct : p
+      )
+    );
+    setEditingProduct(null);
+  };
+
+  return (
+    <div className="p-6 space-y-6 overflow-y-auto h-full">
+
+      {/* ===================== STATS GRID ===================== */}
+      <StatsGrid
+        stats={dashboardStats}
+        darkMode={darkMode}
+        styles={styles}
+      />
+
+      {/* ===================== TABLE + PIE SAME CARD ===================== */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className={`${styles.card}`}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ================= TABLE ================= */}
+          <motion.div variants={item} className="lg:col-span-2">
+            <h3 className={`text-lg font-semibold mb-4 ${styles.text.primary}`}>
+              Product List
+            </h3>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-100 dark:bg-gray-700">
+                  <tr>
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Stock</th>
+                    <th className="p-3">Price</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {products.map((product) => (
+                    <tr
+                      key={product.id}
+                      className="border-t dark:border-gray-700"
+                    >
+                      <td className="p-3">{product.name}</td>
+                      <td className="p-3">{product.stock}</td>
+                      <td className="p-3">${product.price}</td>
+                      <td className="p-3">{product.status}</td>
+                      <td className="p-3 space-x-3">
+                        <button
+                          onClick={() => setEditingProduct(product)}
+                          className="text-blue-500 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-500 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+
+          {/* ================= PIE CHART ================= */}
+          <motion.div variants={item}>
+            <StockPieChart
+              data={stockStatus}
+              darkMode={darkMode}
+              styles={styles}
+            />
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* ===================== EDIT MODAL ===================== */}
+      {editingProduct && (
+        <EditModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSave={handleSave}
+          darkMode={darkMode}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Products;
