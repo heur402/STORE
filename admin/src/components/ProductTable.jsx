@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { recentProducts } from "../assets/assets";
-import EditModal from "./Edit";
+import EditModal from './EditModal'
 
 const ProductTable = () => {
   const navigate = useNavigate();
@@ -143,8 +143,19 @@ const ProductTable = () => {
                 <td className="p-4 dark:text-gray-300">{product.stock}</td>
 
                 <td className="p-4 font-medium dark:text-gray-300">
-                  ${product.price}
-                </td>
+  {product.discountPrice && product.discountPrice > 0 ? (
+    <div className="flex flex-col">
+      <span className="line-through text-gray-400 text-xs">
+        ${product.price}
+      </span>
+      <span className="text-red-500 font-semibold">
+        ${product.discountPrice}
+      </span>
+    </div>
+  ) : (
+    `$${product.price}`
+  )}
+</td>
 
                 <td className="p-4">
                   <span

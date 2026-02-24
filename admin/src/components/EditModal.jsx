@@ -1,15 +1,16 @@
-import React, { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-
-
-/* ================= EDIT MODAL ================= */
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 const EditModal = ({ product, onClose, onSave }) => {
-  const [formData, setFormData] = useState(product);
+  const [formData, setFormData] = useState({ ...product });
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const { name, value, type } = e.target;
+
+    setFormData({
+      ...formData,
+      [name]: type === "number" ? Number(value) : value,
+    });
   };
 
   return (
@@ -53,7 +54,15 @@ const EditModal = ({ product, onClose, onSave }) => {
             className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
           />
 
-                  
+          <input
+            name="discountPrice"
+            type="number"
+            placeholder="Discount Price (optional)"
+            value={formData.discountPrice || ""}
+            onChange={handleChange}
+            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+          />
+
           <div className="flex justify-end gap-3 pt-4">
             <button
               onClick={onClose}
