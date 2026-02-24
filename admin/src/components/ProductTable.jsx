@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { recentProducts } from "../assets/assets";
+import EditModal from "./Edit";
 
 const ProductTable = () => {
   const navigate = useNavigate();
@@ -125,7 +126,7 @@ const ProductTable = () => {
               >
                 <td className="p-4">
                   <img
-                    src={product.image}
+                    src={product.images[0]}
                     alt={product.name}
                     className="w-12 h-12 object-cover rounded-lg"
                   />
@@ -208,76 +209,6 @@ const ProductTable = () => {
   );
 };
 
-/* ================= EDIT MODAL ================= */
 
-const EditModal = ({ product, onClose, onSave }) => {
-  const [formData, setFormData] = useState(product);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-    >
-      <motion.div
-        initial={{ scale: 0.8 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.8 }}
-        className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl"
-      >
-        <h2 className="text-lg font-semibold mb-4 dark:text-white">
-          Edit Product
-        </h2>
-
-        <div className="space-y-4">
-          <input
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-          />
-
-          <input
-            name="stock"
-            type="number"
-            value={formData.stock}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-          />
-
-          <input
-            name="price"
-            type="number"
-            value={formData.price}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-          />
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg"
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={() => onSave(formData)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
 
 export default ProductTable;

@@ -24,16 +24,16 @@ const MainPage = () => {
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
   return (
-    <section className="flex h-screen w-full overflow-hidden">
-      {/* Sidebar receives darkMode state */}
-      <SideBar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+  <section className="flex min-h-screen w-full">
+    {/* Sidebar */}
+    <SideBar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
-      {/* Display also receives darkMode state */}
-      <div className="flex-1 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-        <Outlet context={{ darkMode }} />
-      </div>
-    </section>
-  );
+    {/* Scrollable Content Area */}
+    <div className="flex-1 h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <Outlet context={{ darkMode }} />
+    </div>
+  </section>
+);
 };
 
 export default MainPage;

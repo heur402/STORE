@@ -87,7 +87,7 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
         onAnimationStart={() => setIsTransitioning(true)}
         onAnimationComplete={() => setIsTransitioning(false)}
         transition={{ type: "spring", stiffness: 150, damping: 20, mass: 1.2 }}
-        className={`hidden sm:flex h-screen border-r flex-col justify-between shadow-lg relative overflow-hidden transition-colors duration-300
+        className={`hidden sm:flex h-screen border-r flex-col justify-between shadow-lg relative fixed overflow-hidden transition-colors duration-300
           ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}
         style={{ overflowX: "hidden" }}
       >
