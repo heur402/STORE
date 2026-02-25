@@ -1,194 +1,343 @@
-on save all the files are being the same
-// src/component/ProductTable.jsx
+add the dark mode to this components too
+
+// src/page/AllProduct.jsx
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { recentProducts } from "../assets/assets";
-import EditModal from "./Edit";
+import { useOutletContext, useNavigate } from "react-router-dom";
+import ProductGrid from "../components/ProductGrid";
+import EditModal from "../components/EditModal";
+import AddProductModal from "../components/AddProductModal";
+import { Search, Coffee, Utensils, Fuel, Package } from "lucide-react";
+import { useProducts } from "../context/ProductContext";
+
+const categories = [
+  { name: "All", icon: Package },
+  { name: "Drinks", icon: Coffee },
+  { name: "Food", icon: Utensils },
+  { name: "Fuel", icon: Fuel },
+];
+
+const AllProduct = () => {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const { darkMode } = useOutletContext();
+
+  const { products, handleEdit, handleDelete, handleAdd } = useProducts();
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesCategory =
+        selectedCategory === "All" || product.category === selectedCategory;
+      const matchesSearch = product.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, selectedCategory, searchTerm]);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 300, damping: 24 },
+    },
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-auto"
+    >
+      <div className="px-4 sm:px-6 lg:px-8 py-8 lg:py-12 max-w-7xl mx-auto">
+        {/* Header + Search + Add Button */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="mb-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6"
+        >
+          <div>
+            <motion.h1
+              variants={itemVariants}
+              className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-3"
+            >
+              All Products
+            </motion.h1>
+            <motion.p variants={itemVariants} className="text-gray-600 text-lg">
+              Discover our curated collection of premium products
+            </motion.p>
+          </div>
+
+          <div className="flex gap-3 items-center">
+            {/* Search input */}
+            <motion.div
+              className="relative w-full lg:w-[350px]"
+              animate={{ scale: isSearchFocused ? 1.02 : 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border-0 bg-white shadow-lg focus:ring-4 focus:ring-black/10 focus:outline-none transition-all duration-300 text-gray-800 placeholder-gray-400"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setIsSearchFocused(false)}
+              />
+              {searchTerm && (
+                <motion.button
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </motion.button>
+              )}
+            </motion.div>
+
+            {/* Add Product Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-6 py-1 lg:py-3 bg-gradient-to-r from-black to-gray-800 shadow-black/25 text-white rounded-xl md:text-sm lg:rounded-2xl cursor-pointer shadow-lg transition-colors"
+            >
+              Add Product
+            </motion.button>
+          </div>
+        </motion.div>
+
+        {/* Category Buttons */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-wrap gap-3 justify-center md:justify-start mb-8"
+        >
+          {categories.map((category) => {
+            const Icon = category.icon;
+            const isSelected = selectedCategory === category.name;
+            return (
+              <motion.button
+                key={category.name}
+                variants={itemVariants}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedCategory(category.name)}
+                className={`group relative px-6 py-3 rounded-2xl font-medium transition-all duration-300 flex items-center gap-2 ${
+                  isSelected
+                    ? "bg-gradient-to-r from-black to-gray-800 text-white shadow-lg shadow-black/25"
+                    : "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-md border border-gray-200"
+                }`}
+              >
+                <Icon
+                  className={`w-4 h-4 ${
+                    isSelected
+                      ? "text-white"
+                      : "text-gray-500 group-hover:text-gray-700"
+                  }`}
+                />
+                {category.name}
+              </motion.button>
+            );
+          })}
+        </motion.div>
+
+        {/* Results Count */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-sm text-gray-500 mb-6"
+        >
+          Showing {filteredProducts.length}{" "}
+          {filteredProducts.length === 1 ? "product" : "products"}
+        </motion.p>
+
+        {/* Product Grid */}
+        <AnimatePresence mode="wait">
+          {filteredProducts.length > 0 ? (
+            <motion.div
+              key="product-grid"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ProductGrid
+                products={filteredProducts.map((p) => ({ ...p }))}
+                onEdit={setEditingProduct}
+                onDelete={handleDelete}
+                view="grid"
+                key={filteredProducts.map((p) => p._id).join("-")}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="no-results"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="text-center py-20"
+            >
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="inline-block"
+              >
+                <Package className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+              </motion.div>
+
+              <h3 className="text-2xl font-semibold text-gray-700 mb-2">
+                No products found
+              </h3>
+              <p className="text-gray-500">
+                Try adjusting your search or filter criteria
+              </p>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedCategory("All");
+                }}
+                className="mt-6 px-6 py-3 bg-black text-white rounded-2xl hover:bg-gray-800 transition-colors shadow-lg"
+              >
+                Clear Filters
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {editingProduct && (
+          <EditModal
+            product={editingProduct}
+            onClose={() => setEditingProduct(null)}
+            onSave={handleEdit}
+            darkMode={darkMode}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Add Product Modal */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <AddProductModal
+            onClose={() => setIsAddModalOpen(false)}
+            onSave={(newProduct) => {
+              handleAdd(newProduct);
+              setIsAddModalOpen(false);
+            }}
+            darkMode={darkMode}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+export default AllProduct;
+
+// src/component/ProductTable.jsx
+import React, { useState, useMemo } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import ProductGrid from "./ProductGrid";
+import EditModal from "./EditModal";
+import AddProductModal from "./AddProductModal";
+import { useProducts } from "../context/ProductContext";
 
 const ProductTable = () => {
   const navigate = useNavigate();
-
-  const [products, setProducts] = useState(recentProducts);
+  const { products, handleEdit, handleDelete, handleAdd } = useProducts(); 
   const [editingProduct, setEditingProduct] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false); 
+  const { darkMode } = useOutletContext();
   const [sortType, setSortType] = useState("latest");
   const [categoryFilter, setCategoryFilter] = useState("all");
-
-  /* ================= FILTER + SORT ================= */
 
   const categories = ["all", ...new Set(products.map((p) => p.category))];
 
   const filteredProducts = useMemo(() => {
     let updated = [...products];
-
-    if (categoryFilter !== "all") {
+    if (categoryFilter !== "all")
       updated = updated.filter((p) => p.category === categoryFilter);
-    }
-
-    if (sortType === "latest") {
-      updated.sort((a, b) => b.id - a.id);
-    } else {
-      updated.sort((a, b) => a.id - b.id);
-    }
-
+    updated.sort((a, b) =>
+      sortType === "latest"
+        ? new Date(b.createdAt) - new Date(a.createdAt)
+        : new Date(a.createdAt) - new Date(b.createdAt)
+    );
     return updated;
   }, [products, sortType, categoryFilter]);
 
-  /* ================= DELETE ================= */
-
-  const handleDelete = (id) => {
-    if (!window.confirm("Delete this product?")) return;
-    setProducts(products.filter((p) => p.id !== id));
-  };
-
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400";
-      case "Low Stock":
-        return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400";
-      case "Out of Stock":
-        return "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400";
-      default:
-        return "";
-    }
-  };
-
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 md:p-6">
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
-          Products
-        </h2>
+    <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">Products</h2>
 
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Sort */}
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-            Sort By
-          </label>
-
+        <div className="flex gap-3 items-center">
           <select
             value={sortType}
             onChange={(e) => setSortType(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="px-3 py-2 border rounded-lg"
           >
             <option value="latest">Latest</option>
             <option value="oldest">Oldest</option>
           </select>
 
-          {/* Category */}
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-            Category
-          </label>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className="px-3 py-2 border rounded-lg"
           >
-            {categories.map((cat, index) => (
-              <option key={index} value={cat}>
+            {categories.map((cat, idx) => (
+              <option key={idx} value={cat}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </option>
             ))}
           </select>
 
-          {/* Add Product */}
+          {/* ✅ Add Product button opens modal */}
           <button
-            onClick={() => navigate("/addproduct")}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow"
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg"
           >
             + Add Product
           </button>
         </div>
       </div>
 
-      {/* ================= TABLE ================= */}
-
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left min-w-[700px]">
-          <thead className="bg-gray-100 dark:bg-gray-700 text-xs uppercase tracking-wider">
-            <tr>
-              <th className="p-4">Image</th>
-              <th className="p-4">Name</th>
-              <th className="p-4">Category</th>
-              <th className="p-4">Stock</th>
-              <th className="p-4">Price</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredProducts.map((product) => (
-              <tr
-                key={product.id}
-                className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition"
-              >
-                <td className="p-4">
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-12 h-12 object-cover rounded-lg"
-                  />
-                </td>
-
-                <td className="p-4 font-medium dark:text-white">
-                  {product.name}
-                </td>
-
-                <td className="p-4 text-gray-600 dark:text-gray-300">
-                  {product.category}
-                </td>
-
-                <td className="p-4 dark:text-gray-300">{product.stock}</td>
-
-                <td className="p-4 font-medium dark:text-gray-300">
-  {product.discountPrice && product.discountPrice > 0 ? (
-    <div className="flex flex-col">
-      <span className="line-through text-gray-400 text-xs">
-        ${product.price}
-      </span>
-      <span className="text-red-500 font-semibold">
-        ${product.discountPrice}
-      </span>
-    </div>
-  ) : (
-    `$${product.price}`
-  )}
-</td>
-
-                <td className="p-4">
-                  <span
-                    className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusStyle(
-                      product.status,
-                    )}`}
-                  >
-                    {product.status}
-                  </span>
-                </td>
-
-                <td className="p-4 text-right space-x-2">
-                  <button
-                    onClick={() => setEditingProduct(product)}
-                    className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg dark:bg-blue-900/30 dark:text-blue-400"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="px-3 py-1 text-xs bg-red-50 text-red-600 rounded-lg dark:bg-red-900/30 dark:text-red-400"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ProductGrid
+          products={filteredProducts.map((p) => ({ ...p }))}
+          onEdit={setEditingProduct}
+          onDelete={handleDelete}
+          view="table"
+          darkMode={darkMode}
+        />
       </div>
-
-      {/* ================= FOOTER BUTTON ================= */}
 
       <div className="flex justify-end mt-6">
         <button
@@ -199,116 +348,292 @@ const ProductTable = () => {
         </button>
       </div>
 
-      {/* ================= EDIT MODAL ================= */}
+      {/* Edit Modal */}
+      {editingProduct && (
+        <EditModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSave={handleEdit}
+          darkMode={darkMode}
+        />
+      )}
 
-      <AnimatePresence>
-        {editingProduct && (
-          <EditModal
-            product={editingProduct}
-            onClose={() => setEditingProduct(null)}
-            onSave={(updatedProduct) => {
-              setProducts(
-                products.map((p) =>
-                  p.id === updatedProduct.id ? updatedProduct : p,
-                ),
-              );
-              setEditingProduct(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Add Product Modal */}
+      {isAddModalOpen && (
+        <AddProductModal
+          onClose={() => setIsAddModalOpen(false)}
+          onSave={(newProduct) => {
+            handleAdd(newProduct); // ✅ add to context
+            setIsAddModalOpen(false);
+          }}
+          darkMode={darkMode}
+        />
+      )}
     </div>
   );
 };
 
-
-
 export default ProductTable;
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Edit, Trash2, Eye } from "lucide-react";
 
-const EditModal = ({ product, onClose, onSave }) => {
-  const [formData, setFormData] = useState({ ...product });
+const ProductCard = ({ product, onEdit, onDelete }) => {
+  const [showDesc, setShowDesc] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value, type } = e.target;
+  const isOutOfStock = product.stock === 0;
 
-    setFormData({
-      ...formData,
-      [name]: type === "number" ? Number(value) : value,
-    });
-  };
+  const hasDiscount =
+    product.discountPrice &&
+    product.discountPrice > 0 &&
+    product.discountPrice < product.price;
+
+  const formattedPrice = new Intl.NumberFormat("en-RW", {
+    style: "currency",
+    currency: "RWF",
+  }).format(product.price);
+
+  const formattedDiscountPrice = hasDiscount
+    ? new Intl.NumberFormat("en-RW", {
+        style: "currency",
+        currency: "RWF",
+      }).format(product.discountPrice)
+    : null;
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+      initial={{ opacity: 0, y: 25 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -6 }}
+      transition={{ duration: 0.3 }}
+      className="group"
     >
-      <motion.div
-        initial={{ scale: 0.8 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.8 }}
-        className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl"
-      >
-        <h2 className="text-lg font-semibold mb-4 dark:text-white">
-          Edit Product
-        </h2>
+      <div className="relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300">
 
-        <div className="space-y-4">
-          <input
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
+        {/* STOCK BADGE */}
+        <div
+          className={`absolute top-4 left-4 z-20 text-xs font-semibold px-3 py-1 rounded-full ${
+            isOutOfStock
+              ? "bg-red-500 text-white"
+              : "bg-green-500 text-white"
+          }`}
+        >
+          {isOutOfStock ? "Out of Stock" : `In Stock: ${product.stock}`}
+        </div>
+
+        {/* IMAGE */}
+        <div className="relative w-full h-60 overflow-hidden">
+          <motion.img
+            src={product.images[0]}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.4 }}
           />
 
-          <input
-            name="stock"
-            type="number"
-            value={formData.stock}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-          />
+          <AnimatePresence>
+            {showDesc && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                onClick={() => setShowDesc(false)}
+                className="absolute inset-0 bg-black/80 flex items-center justify-center p-6 cursor-pointer"
+              >
+                <p className="text-white text-center text-lg">
+                  {product.description || "No description available."}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-          <input
-            name="price"
-            type="number"
-            value={formData.price}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-          />
+        {/* CONTENT */}
+        <div className="p-5 space-y-4">
 
-          <input
-            name="discountPrice"
-            type="number"
-            placeholder="Discount Price (optional)"
-            value={formData.discountPrice || ""}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:text-white"
-          />
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-semibold text-gray-900 text-lg line-clamp-1">
+                {product.name}
+              </h3>
+              <p className="text-sm text-gray-500 capitalize">
+                {product.category}
+              </p>
+            </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+            <div className="text-right whitespace-nowrap">
+              {hasDiscount ? (
+                <div className="flex flex-col items-end">
+                  <span className="text-sm text-gray-400 line-through">
+                    {formattedPrice}
+                  </span>
+                  <span className="text-lg font-bold text-red-600">
+                    {formattedDiscountPrice}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-lg font-bold text-gray-900">
+                  {formattedPrice}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* DESCRIPTION BUTTON */}
+          <div className="flex justify-end">
             <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg"
+              onClick={() => setShowDesc(!showDesc)}
+              className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
             >
-              Cancel
+              <Eye
+                className={`w-5 h-5 ${
+                  showDesc ? "text-blue-600" : "text-gray-600"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* ADMIN ACTIONS */}
+          <div className="flex gap-3 pt-3 border-t border-gray-100">
+            <button
+              onClick={() => onEdit(product)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 
+                         rounded-lg bg-blue-600 text-white text-sm font-medium 
+                         hover:bg-blue-700 transition"
+            >
+              <Edit className="w-4 h-4" />
+              Edit
             </button>
 
             <button
-              onClick={() => onSave(formData)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+              onClick={() => onDelete(product._id)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 
+                         rounded-lg bg-red-600 text-white text-sm font-medium 
+                         hover:bg-red-700 transition"
             >
-              Save
+              <Trash2 className="w-4 h-4" />
+              Delete
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
 
-export default EditModal;
+export default ProductCard;
+
+// src/components/ProductGrid.jsx
+import React from "react";
+import { motion } from "framer-motion";
+import ProductCard from "./ProductCard";
+
+const ProductGrid = ({ products, onEdit, onDelete, view = "grid" }) => {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 30, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 300, damping: 24 },
+    },
+  };
+
+  // ----- TABLE VIEW -----
+  if (view === "table") {
+    return (
+      <table className="w-full text-sm text-left">
+        <thead className="bg-gray-100 uppercase text-xs">
+          <tr>
+            <th className="p-4">Image</th>
+            <th className="p-4">Name</th>
+            <th className="p-4">Category</th>
+            <th className="p-4">Stock</th>
+            <th className="p-4">Price</th>
+            <th className="p-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((product) => (
+            <tr key={product._id} className="border-t">
+              <td className="p-4">
+                <img
+                  src={product.images[0]}
+                  alt={product.name}
+                  className="w-12 h-12 object-cover rounded-lg"
+                />
+              </td>
+              <td className="p-4 font-medium">{product.name}</td>
+              <td className="p-4">{product.category}</td>
+              <td className="p-4">{product.stock}</td>
+              <td className="p-4">
+                {product.discountPrice > 0 ? (
+                  <div className="flex flex-col">
+                    <span className="line-through text-gray-400 text-xs">
+                      {product.price}
+                    </span>
+                    <span className="text-red-500 font-semibold">
+                      {product.discountPrice}
+                    </span>
+                  </div>
+                ) : (
+                  product.price
+                )}
+              </td>
+              <td className="p-4 text-right space-x-2">
+                <button
+                  onClick={() => onEdit(product)}
+                  className="px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded-lg"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDelete(product._id)}
+                  className="px-3 py-1 text-xs bg-red-100 text-red-600 rounded-lg"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
+  // ----- GRID VIEW -----
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8"
+    >
+      {products.map((product, index) => (
+        <motion.div
+          key={product._id} // key is crucial for re-rendering
+          variants={itemVariants}
+          custom={index}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+        >
+          <ProductCard product={{ ...product }} onEdit={onEdit} onDelete={onDelete} />
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+};
+
+export default ProductGrid;

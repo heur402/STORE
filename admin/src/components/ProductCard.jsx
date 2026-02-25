@@ -1,19 +1,18 @@
+// src/components/ProductCard.jsx
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Edit, Trash2, Eye } from "lucide-react";
 
-const ProductCard = ({ product, onEdit, onDelete }) => {
+const ProductCard = ({ product, onEdit, onDelete, darkMode }) => {
   const [showDesc, setShowDesc] = useState(false);
 
   const isOutOfStock = product.stock === 0;
 
-  // ✅ Discount logic
   const hasDiscount =
     product.discountPrice &&
     product.discountPrice > 0 &&
     product.discountPrice < product.price;
 
-  // ✅ Format prices (RWF)
   const formattedPrice = new Intl.NumberFormat("en-RW", {
     style: "currency",
     currency: "RWF",
@@ -34,7 +33,11 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
       transition={{ duration: 0.3 }}
       className="group"
     >
-      <div className="relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300">
+      <div className={`relative rounded-2xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${
+        darkMode
+          ? "bg-gray-800 border-gray-700"
+          : "bg-white border-gray-100"
+      }`}>
 
         {/* STOCK BADGE */}
         <div
@@ -48,77 +51,96 @@ const ProductCard = ({ product, onEdit, onDelete }) => {
         </div>
 
         {/* IMAGE */}
-        <div className="relative w-full lg:pb-[120%] pb-96">
+        <div className="relative w-full h-60 overflow-hidden">
           <motion.img
             src={product.images[0]}
             alt={product.name}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="w-full h-full object-cover"
             whileHover={{ scale: 1.05 }}
             transition={{ duration: 0.4 }}
           />
+
+          <AnimatePresence>
+            {showDesc && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                onClick={() => setShowDesc(false)}
+                className="absolute inset-0 bg-black/80 flex items-center justify-center p-6 cursor-pointer"
+              >
+                <p className="text-white text-center text-lg">
+                  {product.description || "No description available."}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* CONTENT */}
         <div className="p-5 space-y-4">
 
-          {/* NAME + CATEGORY + PRICE */}
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-semibold text-gray-900 text-lg line-clamp-1">
+              <h3 className={`font-semibold text-lg line-clamp-1 ${
+                darkMode ? "text-gray-200" : "text-gray-900"
+              }`}>
                 {product.name}
               </h3>
-              <p className="text-sm text-gray-500 capitalize">
+              <p className={`text-sm capitalize ${
+                darkMode ? "text-gray-400" : "text-gray-500"
+              }`}>
                 {product.category}
               </p>
             </div>
 
-            {/* PRICE WITH DISCOUNT */}
             <div className="text-right whitespace-nowrap">
               {hasDiscount ? (
                 <div className="flex flex-col items-end">
-                  <span className="text-sm text-gray-400 line-through">
+                  <span className={`text-sm line-through ${
+                    darkMode ? "text-gray-500" : "text-gray-400"
+                  }`}>
                     {formattedPrice}
                   </span>
-                  <span className="text-lg font-bold text-red-600">
+                  <span className="text-lg font-bold text-red-500">
                     {formattedDiscountPrice}
                   </span>
                 </div>
               ) : (
-                <span className="text-lg font-bold text-gray-900">
+                <span className={`text-lg font-bold ${
+                  darkMode ? "text-gray-200" : "text-gray-900"
+                }`}>
                   {formattedPrice}
                 </span>
               )}
             </div>
           </div>
 
-          {/* DESCRIPTION TOGGLE */}
+          {/* DESCRIPTION BUTTON */}
           <div className="flex justify-end">
             <button
               onClick={() => setShowDesc(!showDesc)}
-              className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+              className={`p-2 rounded-full transition-colors ${
+                darkMode
+                  ? "bg-gray-700 hover:bg-gray-600"
+                  : "bg-gray-100 hover:bg-gray-200"
+              }`}
             >
               <Eye
                 className={`w-5 h-5 ${
-                  showDesc ? "text-blue-600" : "text-gray-600"
+                  showDesc 
+                    ? "text-blue-500" 
+                    : darkMode ? "text-gray-400" : "text-gray-600"
                 }`}
               />
             </button>
           </div>
 
-          {showDesc && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3 bg-gray-50 rounded-lg"
-            >
-              <p className="text-gray-600 text-sm">
-                {product.description || "No description available."}
-              </p>
-            </motion.div>
-          )}
-
-          {/* ADMIN ACTION BUTTONS */}
-          <div className="flex gap-3 pt-3 border-t border-gray-100">
+          {/* ADMIN ACTIONS */}
+          <div className={`flex gap-3 pt-3 border-t ${
+            darkMode ? "border-gray-700" : "border-gray-100"
+          }`}>
             <button
               onClick={() => onEdit(product)}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2 

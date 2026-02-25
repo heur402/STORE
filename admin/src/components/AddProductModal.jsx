@@ -1,56 +1,64 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 
-const EditModal = ({ product, onClose, onSave, darkMode }) => {
-  const [formData, setFormData] = useState(product);
+const AddProductModal = ({ onClose, onSave, darkMode }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    slug: "",
+    description: "",
+    category: "",
+    price: 0,
+    discountPrice: 0,
+    stock: 0,
+    status: "Active",
+    sku: "",
+    images: [],
+  });
 
-  useEffect(() => {
-    setFormData(product);
-  }, [product]);
-
-  // Close on Escape key
-  useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
-
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: type === "number" && value !== "" ? Number(value) : value,
     }));
   };
 
+  // Handle dynamic image fields
   const handleArrayChange = (index, newValue) => {
-    const updatedImages = [...(formData.images || [])];
+    const updatedImages = [...formData.images];
     updatedImages[index] = newValue;
     setFormData((prev) => ({ ...prev, images: updatedImages }));
   };
 
   const addImageField = () => {
-    setFormData((prev) => ({ ...prev, images: [...(prev.images || []), ""] }));
+    setFormData((prev) => ({ ...prev, images: [...prev.images, ""] }));
   };
 
   const removeImageField = (index) => {
-    const updatedImages = [...(formData.images || [])];
+    const updatedImages = [...formData.images];
     updatedImages.splice(index, 1);
     setFormData((prev) => ({ ...prev, images: updatedImages }));
   };
 
+  // Save new product
   const handleSave = () => {
     // Basic validation
-    if (formData.price < 0 || formData.stock < 0 || formData.discountPrice < 0) {
-      alert("Price, stock, and discount cannot be negative.");
+    if (!formData.name || !formData.slug || formData.price < 0 || formData.stock < 0) {
+      alert("Please fill required fields and ensure numbers are valid.");
       return;
     }
 
-    onSave(formData);   // update product
-    onClose();          // close modal after save
+    onSave({
+      ...formData,
+      _id: Date.now().toString(), // temporary ID
+      rating: 0,
+      reviewsCount: 0,
+      isFeatured: false,
+      isDeleted: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   return (
@@ -73,7 +81,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
         <h2 className={`text-lg font-semibold mb-4 ${
           darkMode ? "text-gray-200" : "text-gray-800"
         }`}>
-          Edit Product
+          Add New Product
         </h2>
 
         <div className="space-y-4">
@@ -81,7 +89,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
           <input
             name="name"
             placeholder="Name"
-            value={formData?.name ?? ""}
+            value={formData.name}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -92,7 +100,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
           <input
             name="slug"
             placeholder="Slug"
-            value={formData?.slug ?? ""}
+            value={formData.slug}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -103,7 +111,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
           <textarea
             name="description"
             placeholder="Description"
-            value={formData?.description ?? ""}
+            value={formData.description}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -114,7 +122,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
           <input
             name="category"
             placeholder="Category"
-            value={formData?.category ?? ""}
+            value={formData.category}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -122,13 +130,13 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
                 : "bg-white border-gray-300 text-gray-800 placeholder-gray-500"
             }`}
           />
-
+          
           {/* Numbers */}
           <input
             name="price"
             type="number"
             placeholder="Price"
-            value={formData?.price ?? 0}
+            value={formData.price}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -140,7 +148,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
             name="discountPrice"
             type="number"
             placeholder="Discount Price"
-            value={formData?.discountPrice ?? 0}
+            value={formData.discountPrice}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -152,7 +160,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
             name="stock"
             type="number"
             placeholder="Stock"
-            value={formData?.stock ?? 0}
+            value={formData.stock}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -168,7 +176,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
             }`}>
               Images
             </label>
-            {(formData.images || []).map((img, idx) => (
+            {formData.images.map((img, idx) => (
               <div key={idx} className="flex gap-2">
                 <input
                   type="text"
@@ -212,7 +220,7 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
               onClick={handleSave} 
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Save
+              Add Product
             </button>
           </div>
         </div>
@@ -221,4 +229,4 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
   );
 };
 
-export default EditModal;
+export default AddProductModal;

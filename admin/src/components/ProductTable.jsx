@@ -1,225 +1,131 @@
-// src/component/ProductTable.jsx
+// src/components/ProductTable.jsx
 import React, { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { recentProducts } from "../assets/assets";
-import EditModal from './EditModal'
+import { useNavigate, useOutletContext } from "react-router-dom";
+import ProductGrid from "./ProductGrid";
+import EditModal from "./EditModal";
+import AddProductModal from "./AddProductModal";
+import { useProducts } from "../context/ProductContext";
 
 const ProductTable = () => {
   const navigate = useNavigate();
-
-  const [products, setProducts] = useState(recentProducts);
+  const { products, handleEdit, handleDelete, handleAdd } = useProducts(); 
   const [editingProduct, setEditingProduct] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false); 
+  const { darkMode } = useOutletContext();
   const [sortType, setSortType] = useState("latest");
   const [categoryFilter, setCategoryFilter] = useState("all");
-
-  /* ================= FILTER + SORT ================= */
 
   const categories = ["all", ...new Set(products.map((p) => p.category))];
 
   const filteredProducts = useMemo(() => {
     let updated = [...products];
-
-    if (categoryFilter !== "all") {
+    if (categoryFilter !== "all")
       updated = updated.filter((p) => p.category === categoryFilter);
-    }
-
-    if (sortType === "latest") {
-      updated.sort((a, b) => b.id - a.id);
-    } else {
-      updated.sort((a, b) => a.id - b.id);
-    }
-
+    updated.sort((a, b) =>
+      sortType === "latest"
+        ? new Date(b.createdAt) - new Date(a.createdAt)
+        : new Date(a.createdAt) - new Date(b.createdAt)
+    );
     return updated;
   }, [products, sortType, categoryFilter]);
 
-  /* ================= DELETE ================= */
-
-  const handleDelete = (id) => {
-    if (!window.confirm("Delete this product?")) return;
-    setProducts(products.filter((p) => p.id !== id));
-  };
-
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400";
-      case "Low Stock":
-        return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-400";
-      case "Out of Stock":
-        return "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400";
-      default:
-        return "";
-    }
-  };
-
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 md:p-6">
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+    <div className={`rounded-2xl shadow-lg p-6 transition-colors duration-300 ${
+      darkMode ? "bg-gray-800" : "bg-white"
+    }`}>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className={`text-xl font-semibold ${
+          darkMode ? "text-gray-200" : "text-gray-800"
+        }`}>
           Products
         </h2>
 
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Sort */}
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-            Sort By
-          </label>
-
+        <div className="flex gap-3 items-center">
           <select
             value={sortType}
             onChange={(e) => setSortType(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className={`px-3 py-2 border rounded-lg transition-colors duration-300 ${
+              darkMode
+                ? "bg-gray-700 border-gray-600 text-gray-200"
+                : "bg-white border-gray-300 text-gray-800"
+            }`}
           >
             <option value="latest">Latest</option>
             <option value="oldest">Oldest</option>
           </select>
 
-          {/* Category */}
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-            Category
-          </label>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg border dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            className={`px-3 py-2 border rounded-lg transition-colors duration-300 ${
+              darkMode
+                ? "bg-gray-700 border-gray-600 text-gray-200"
+                : "bg-white border-gray-300 text-gray-800"
+            }`}
           >
-            {categories.map((cat, index) => (
-              <option key={index} value={cat}>
+            {categories.map((cat, idx) => (
+              <option key={idx} value={cat}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </option>
             ))}
           </select>
 
-          {/* Add Product */}
+          {/* Add Product button opens modal */}
           <button
-            onClick={() => navigate("/addproduct")}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow"
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             + Add Product
           </button>
         </div>
       </div>
 
-      {/* ================= TABLE ================= */}
-
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left min-w-[700px]">
-          <thead className="bg-gray-100 dark:bg-gray-700 text-xs uppercase tracking-wider">
-            <tr>
-              <th className="p-4">Image</th>
-              <th className="p-4">Name</th>
-              <th className="p-4">Category</th>
-              <th className="p-4">Stock</th>
-              <th className="p-4">Price</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredProducts.map((product) => (
-              <tr
-                key={product.id}
-                className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition"
-              >
-                <td className="p-4">
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-12 h-12 object-cover rounded-lg"
-                  />
-                </td>
-
-                <td className="p-4 font-medium dark:text-white">
-                  {product.name}
-                </td>
-
-                <td className="p-4 text-gray-600 dark:text-gray-300">
-                  {product.category}
-                </td>
-
-                <td className="p-4 dark:text-gray-300">{product.stock}</td>
-
-                <td className="p-4 font-medium dark:text-gray-300">
-  {product.discountPrice && product.discountPrice > 0 ? (
-    <div className="flex flex-col">
-      <span className="line-through text-gray-400 text-xs">
-        ${product.price}
-      </span>
-      <span className="text-red-500 font-semibold">
-        ${product.discountPrice}
-      </span>
-    </div>
-  ) : (
-    `$${product.price}`
-  )}
-</td>
-
-                <td className="p-4">
-                  <span
-                    className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusStyle(
-                      product.status,
-                    )}`}
-                  >
-                    {product.status}
-                  </span>
-                </td>
-
-                <td className="p-4 text-right space-x-2">
-                  <button
-                    onClick={() => setEditingProduct(product)}
-                    className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg dark:bg-blue-900/30 dark:text-blue-400"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product.id)}
-                    className="px-3 py-1 text-xs bg-red-50 text-red-600 rounded-lg dark:bg-red-900/30 dark:text-red-400"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ProductGrid
+          products={filteredProducts.map((p) => ({ ...p }))}
+          onEdit={setEditingProduct}
+          onDelete={handleDelete}
+          view="table"
+          darkMode={darkMode}
+        />
       </div>
-
-      {/* ================= FOOTER BUTTON ================= */}
 
       <div className="flex justify-end mt-6">
         <button
           onClick={() => navigate("/allproduct")}
-          className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 dark:text-white rounded-lg hover:opacity-80"
+          className={`px-4 py-2 text-sm rounded-lg transition-colors duration-300 ${
+            darkMode
+              ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+          }`}
         >
           View All Products →
         </button>
       </div>
 
-      {/* ================= EDIT MODAL ================= */}
+      {/* Edit Modal */}
+      {editingProduct && (
+        <EditModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSave={handleEdit}
+          darkMode={darkMode}
+        />
+      )}
 
-      <AnimatePresence>
-        {editingProduct && (
-          <EditModal
-            product={editingProduct}
-            onClose={() => setEditingProduct(null)}
-            onSave={(updatedProduct) => {
-              setProducts(
-                products.map((p) =>
-                  p.id === updatedProduct.id ? updatedProduct : p,
-                ),
-              );
-              setEditingProduct(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Add Product Modal */}
+      {isAddModalOpen && (
+        <AddProductModal
+          onClose={() => setIsAddModalOpen(false)}
+          onSave={(newProduct) => {
+            handleAdd(newProduct);
+            setIsAddModalOpen(false);
+          }}
+          darkMode={darkMode}
+        />
+      )}
     </div>
   );
 };
-
-
 
 export default ProductTable;

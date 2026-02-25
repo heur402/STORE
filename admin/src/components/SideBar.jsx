@@ -44,6 +44,7 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
     name: "Loading...",
     role: "",
   });
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const navigate = useNavigate();
 
@@ -242,40 +243,153 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
         </div>
       </motion.div>
 
-      {/* Mobile Bottom Nav (unchanged) */}
-      <motion.div
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        exit={{ y: 100 }}
-        transition={{ type: "spring", stiffness: 120, damping: 20 }}
-        className={`fixed bottom-0 left-0 right-0 sm:hidden z-50 flex justify-around border-t ${
-          darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
-        } shadow-lg`}
-      >
-        {navSections.flatMap(section => section.items).map((item, index) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={index}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center py-2 px-4 transition-all ${
-                  isActive
-                    ? darkMode
-                      ? "text-indigo-400"
-                      : "text-indigo-600"
-                    : darkMode
-                    ? "text-gray-400 hover:text-gray-200"
-                    : "text-gray-500 hover:text-gray-700"
-                }`
-              }
+      {/* Mobile Bottom Nav with User Menu */}
+      <>
+        {/* Mobile Bottom Navigation */}
+        <motion.div
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          exit={{ y: 100 }}
+          transition={{ type: "spring", stiffness: 120, damping: 20 }}
+          className={`fixed bottom-0 left-0 right-0 sm:hidden z-50 flex justify-around items-center border-t ${
+            darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
+          } shadow-lg px-2`}
+        >
+          {navSections.flatMap(section => section.items).map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={index}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex flex-col items-center justify-center py-2 px-2 transition-all ${
+                    isActive
+                      ? darkMode
+                        ? "text-indigo-400"
+                        : "text-indigo-600"
+                      : darkMode
+                      ? "text-gray-400 hover:text-gray-200"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`
+                }
+              >
+                <Icon size={22} />
+                <span className="text-[10px] mt-0.5">{item.name}</span>
+              </NavLink>
+            );
+          })}
+
+          {/* User Menu Trigger */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className={`flex flex-col items-center justify-center py-2 px-2 transition-all ${
+                darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+              }`}
             >
-              <Icon size={24} />
-              <span className="text-xs">{item.name}</span>
-            </NavLink>
-          );
-        })}
-      </motion.div>
+              <User size={22} />
+              <span className="text-[10px] mt-0.5">Profile</span>
+            </button>
+
+            {/* Mobile User Menu Dropdown */}
+            <AnimatePresence>
+              {showMobileMenu && (
+                <>
+                  {/* Backdrop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowMobileMenu(false)}
+                    className="fixed inset-0 z-40"
+                  />
+                  
+                  {/* Menu */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className={`absolute bottom-16 right-0 w-64 rounded-xl shadow-xl overflow-hidden z-50 border ${
+                      darkMode 
+                        ? "bg-gray-800 border-gray-700" 
+                        : "bg-white border-gray-200"
+                    }`}
+                  >
+                    {/* User Info Header */}
+                    <div className={`px-4 py-3 border-b ${
+                      darkMode ? "border-gray-700" : "border-gray-100"
+                    }`}>
+                      <p className={`font-medium ${
+                        darkMode ? "text-gray-200" : "text-gray-800"
+                      }`}>
+                        {adminData.name}
+                      </p>
+                      <p className={`text-xs ${
+                        darkMode ? "text-gray-400" : "text-gray-500"
+                      }`}>
+                        {adminData.role}
+                      </p>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-2">
+                      {/* Dark Mode Toggle */}
+                      <button
+                        onClick={() => {
+                          toggleDarkMode();
+                          setShowMobileMenu(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                          darkMode 
+                            ? "hover:bg-gray-700 text-gray-300" 
+                            : "hover:bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {darkMode ? (
+                          <Sun size={18} className="text-yellow-500" />
+                        ) : (
+                          <Moon size={18} className="text-gray-600" />
+                        )}
+                        <span className="text-sm">{darkMode ? "Light Mode" : "Dark Mode"}</span>
+                      </button>
+
+                      {/* Settings Link */}
+                      <NavLink
+                        to="/settings"
+                        onClick={() => setShowMobileMenu(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                          darkMode 
+                            ? "hover:bg-gray-700 text-gray-300" 
+                            : "hover:bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        <Settings size={18} className={darkMode ? "text-gray-400" : "text-gray-500"} />
+                        <span className="text-sm">Settings</span>
+                      </NavLink>
+
+                      {/* Logout */}
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setShowMobileMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
+                      >
+                        <LogOut size={18} />
+                        <span className="text-sm">Logout</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        {/* Spacer for mobile bottom nav */}
+        <div className="h-16 sm:hidden" />
+      </>
     </>
   );
 };

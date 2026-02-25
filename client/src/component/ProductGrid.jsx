@@ -38,7 +38,7 @@ const ProductGrid = ({ products }) => {
     >
       {products.map((product, index) => (
         <motion.div
-          key={product.id}
+          key={product._id}
           variants={itemVariants}
           custom={index}
           whileInView={{ opacity: 1, y: 0 }}

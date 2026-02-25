@@ -16,7 +16,7 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password,
-      role: "client", // prevent random admin creation
+      role, // prevent random admin creation
     });
 
     res.status(201).json({
@@ -36,7 +36,7 @@ export const registerUser = async (req, res) => {
 // 🔑 LOGIN
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     const user = await User.findOne({ email });
 
