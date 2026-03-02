@@ -1,9 +1,630 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useOutletContext } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Bell,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Package,
+  MapPin,
+  Phone,
+  User,
+  CreditCard,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Filter,
+  ShoppingBag,
+  Truck,
+  AlertCircle,
+  RefreshCw
+} from "lucide-react";
 
 const Orders = () => {
-  return (
-    <div>Orders</div>
-  )
-}
+  const { darkMode } = useOutletContext();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [filter, setFilter] = useState("all"); // all, pending, confirmed, delivered, cancelled
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [expandedOrder, setExpandedOrder] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    confirmed: 0,
+    delivered: 0,
+    cancelled: 0
+  });
 
-export default Orders
+  // Simulate fetching orders
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // Update stats when orders change
+  useEffect(() => {
+    calculateStats();
+  }, [orders]);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      // Simulate API call - replace with actual API
+      setTimeout(() => {
+        const mockOrders = generateMockOrders();
+        setOrders(mockOrders);
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      setLoading(false);
+    }
+  };
+
+  const generateMockOrders = () => {
+    const statuses = ["pending", "confirmed", "delivered", "cancelled"];
+    const paymentMethods = ["cash", "card", "mobile money"];
+    
+    return Array.from({ length: 15 }, (_, i) => ({
+      id: `ORD-${String(i + 1).padStart(4, '0')}`,
+      customerName: `Customer ${i + 1}`,
+      customerPhone: `+250 78${Math.floor(1000000 + Math.random() * 9000000)}`,
+      customerAddress: `Kigali, Rwanda`,
+      items: Array.from({ length: Math.floor(1 + Math.random() * 4) }, (_, j) => ({
+        name: `Product ${j + 1}`,
+        quantity: Math.floor(1 + Math.random() * 3),
+        price: Math.floor(5000 + Math.random() * 50000),
+      })),
+      total: 0,
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
+      createdAt: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
+      notes: Math.random() > 0.7 ? "Please call before delivery" : "",
+    })).map(order => ({
+      ...order,
+      total: order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    }));
+  };
+
+  const calculateStats = () => {
+    const newStats = {
+      total: orders.length,
+      pending: orders.filter(o => o.status === "pending").length,
+      confirmed: orders.filter(o => o.status === "confirmed").length,
+      delivered: orders.filter(o => o.status === "delivered").length,
+      cancelled: orders.filter(o => o.status === "cancelled").length,
+    };
+    setStats(newStats);
+  };
+
+  const updateOrderStatus = (orderId, newStatus) => {
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      )
+    );
+
+    // Add notification
+    const order = orders.find(o => o.id === orderId);
+    addNotification({
+      id: Date.now(),
+      orderId,
+      message: `Order ${orderId} ${newStatus === 'confirmed' ? 'confirmed' : newStatus === 'delivered' ? 'delivered' : 'updated'}`,
+      type: newStatus === 'cancelled' ? 'error' : 'success',
+      timestamp: new Date().toISOString()
+    });
+  };
+
+  const addNotification = (notification) => {
+    setNotifications(prev => [notification, ...prev].slice(0, 10));
+    
+    // Auto-hide notification after 5 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 5000);
+  };
+
+  const clearNotification = (notificationId) => {
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesFilter = filter === "all" || order.status === filter;
+    const matchesSearch = 
+      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerPhone.includes(searchTerm);
+    return matchesFilter && matchesSearch;
+  });
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case "pending": return "bg-yellow-500";
+      case "confirmed": return "bg-blue-500";
+      case "delivered": return "bg-green-500";
+      case "cancelled": return "bg-red-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  const getStatusText = (status) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-RW", {
+      style: "currency",
+      currency: "RWF",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <div className={`min-h-screen transition-colors duration-300 ${
+      darkMode ? "bg-gray-900" : "bg-gray-50"
+    }`}>
+      {/* Header with Notifications */}
+      <div className={`sticky top-0 z-10 px-4 py-3 sm:px-6 lg:px-8 border-b ${
+        darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
+      }`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex  sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h1 className={`text-xl sm:text-2xl font-bold ${
+              darkMode ? "text-white" : "text-gray-900"
+            }`}>
+              Orders Management
+            </h1>
+            
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={`relative p-2 rounded-lg transition-colors ${
+                  darkMode 
+                    ? "hover:bg-gray-800 text-gray-300" 
+                    : "hover:bg-gray-100 text-gray-600"
+                }`}
+              >
+                <Bell size={20} />
+                {notifications.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown */}
+              <AnimatePresence>
+                {showNotifications && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setShowNotifications(false)}
+                      className="fixed inset-0 z-40"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className={`absolute right-0 mt-2 w-80 sm:w-96 rounded-xl shadow-xl overflow-hidden z-50 border ${
+                        darkMode 
+                          ? "bg-gray-800 border-gray-700" 
+                          : "bg-white border-gray-200"
+                      }`}
+                    >
+                      <div className={`px-4 py-3 border-b ${
+                        darkMode ? "border-gray-700" : "border-gray-100"
+                      }`}>
+                        <h3 className={`font-semibold ${
+                          darkMode ? "text-gray-200" : "text-gray-800"
+                        }`}>
+                          Notifications
+                        </h3>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          notifications.map(notification => (
+                            <div
+                              key={notification.id}
+                              className={`px-4 py-3 border-b last:border-0 ${
+                                darkMode 
+                                  ? "border-gray-700 hover:bg-gray-700" 
+                                  : "border-gray-100 hover:bg-gray-50"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                {notification.type === 'success' ? (
+                                  <CheckCircle size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
+                                ) : (
+                                  <XCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                                )}
+                                <div className="flex-1">
+                                  <p className={`text-sm ${
+                                    darkMode ? "text-gray-300" : "text-gray-700"
+                                  }`}>
+                                    {notification.message}
+                                  </p>
+                                  <p className={`text-xs mt-1 ${
+                                    darkMode ? "text-gray-500" : "text-gray-400"
+                                  }`}>
+                                    {new Date(notification.timestamp).toLocaleTimeString()}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => clearNotification(notification.id)}
+                                  className={`text-xs ${
+                                    darkMode 
+                                      ? "text-gray-500 hover:text-gray-300" 
+                                      : "text-gray-400 hover:text-gray-600"
+                                  }`}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className={`px-4 py-8 text-center ${
+                            darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}>
+                            <Bell size={32} className="mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No notifications</p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+          {[
+            { label: "Total", value: stats.total, icon: ShoppingBag, color: "blue" },
+            { label: "Pending", value: stats.pending, icon: Clock, color: "yellow" },
+            { label: "Confirmed", value: stats.confirmed, icon: CheckCircle, color: "green" },
+            { label: "Delivered", value: stats.delivered, icon: Truck, color: "purple" },
+            { label: "Cancelled", value: stats.cancelled, icon: XCircle, color: "red" },
+          ].map((stat, index) => {
+            const Icon = stat.icon;
+            const colors = {
+              blue: darkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-600",
+              yellow: darkMode ? "bg-yellow-900/30 text-yellow-400" : "bg-yellow-100 text-yellow-600",
+              green: darkMode ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-600",
+              purple: darkMode ? "bg-purple-900/30 text-purple-400" : "bg-purple-100 text-purple-600",
+              red: darkMode ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-600",
+            };
+            
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className={`p-4 rounded-xl shadow-sm ${
+                  darkMode ? "bg-gray-800" : "bg-white"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs ${
+                      darkMode ? "text-gray-400" : "text-gray-500"
+                    }`}>
+                      {stat.label}
+                    </p>
+                    <p className={`text-xl font-bold mt-1 ${
+                      darkMode ? "text-white" : "text-gray-900"
+                    }`}>
+                      {stat.value}
+                    </p>
+                  </div>
+                  <div className={`p-2 rounded-lg ${colors[stat.color]}`}>
+                    <Icon size={18} />
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Filters and Search */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="flex-1 relative">
+            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+              darkMode ? "text-gray-500" : "text-gray-400"
+            }`} size={18} />
+            <input
+              type="text"
+              placeholder="Search by order ID, customer..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={`w-full pl-10 pr-4 py-2 rounded-lg border transition-colors ${
+                darkMode
+                  ? "bg-gray-800 border-gray-700 text-gray-200 placeholder-gray-500"
+                  : "bg-white border-gray-300 text-gray-800 placeholder-gray-400"
+              }`}
+            />
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+            {["all", "pending", "confirmed", "delivered", "cancelled"].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                  filter === status
+                    ? darkMode
+                      ? "bg-indigo-600 text-white"
+                      : "bg-indigo-600 text-white"
+                    : darkMode
+                    ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {status === "all" ? "All" : getStatusText(status)}
+              </button>
+            ))}
+          </div>
+          
+          <button
+            onClick={fetchOrders}
+            className={`p-2 rounded-lg transition-colors w-9 ${
+              darkMode
+                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
+
+        {/* Orders List */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <AnimatePresence>
+              {filteredOrders.map((order, index) => (
+                <motion.div
+                  key={order.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`rounded-xl shadow-sm overflow-hidden ${
+                    darkMode ? "bg-gray-800" : "bg-white"
+                  }`}
+                >
+                  {/* Order Header - Always Visible */}
+                  <div
+                    onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                    className={`p-4 cursor-pointer transition-colors ${
+                      darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-2 h-2 mt-2 rounded-full ${getStatusColor(order.status)}`} />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className={`font-semibold ${
+                              darkMode ? "text-white" : "text-gray-900"
+                            }`}>
+                              {order.id}
+                            </h3>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {formatDate(order.createdAt)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <User size={14} className={darkMode ? "text-gray-500" : "text-gray-400"} />
+                            <span className={`text-sm ${
+                              darkMode ? "text-gray-300" : "text-gray-600"
+                            }`}>
+                              {order.customerName}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between sm:justify-end gap-4">
+                        <div className="text-right">
+                          <p className={`text-sm font-semibold ${
+                            darkMode ? "text-white" : "text-gray-900"
+                          }`}>
+                            {formatCurrency(order.total)}
+                          </p>
+                          <p className={`text-xs ${
+                            darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}>
+                            {order.items.length} items
+                          </p>
+                        </div>
+                        {expandedOrder === order.id ? (
+                          <ChevronUp size={20} className={darkMode ? "text-gray-400" : "text-gray-500"} />
+                        ) : (
+                          <ChevronDown size={20} className={darkMode ? "text-gray-400" : "text-gray-500"} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className={`text-xs px-2 py-1 rounded-full text-white ${getStatusColor(order.status)}`}>
+                        {getStatusText(order.status)}
+                      </span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {order.paymentMethod}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expanded Details */}
+                  <AnimatePresence>
+                    {expandedOrder === order.id && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={`border-t ${
+                          darkMode ? "border-gray-700" : "border-gray-100"
+                        }`}
+                      >
+                        <div className="p-4 space-y-4">
+                          {/* Customer Details */}
+                          <div className="space-y-2">
+                            <h4 className={`text-sm font-semibold ${
+                              darkMode ? "text-gray-300" : "text-gray-700"
+                            }`}>
+                              Customer Details
+                            </h4>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Phone size={14} className={darkMode ? "text-gray-500" : "text-gray-400"} />
+                                <span className={darkMode ? "text-gray-300" : "text-gray-600"}>
+                                  {order.customerPhone}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <MapPin size={14} className={darkMode ? "text-gray-500" : "text-gray-400"} />
+                                <span className={darkMode ? "text-gray-300" : "text-gray-600"}>
+                                  {order.customerAddress}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Order Items */}
+                          <div>
+                            <h4 className={`text-sm font-semibold mb-2 ${
+                              darkMode ? "text-gray-300" : "text-gray-700"
+                            }`}>
+                              Items
+                            </h4>
+                            <div className="space-y-2">
+                              {order.items.map((item, idx) => (
+                                <div key={idx} className={`flex justify-between text-sm p-2 rounded ${
+                                  darkMode ? "bg-gray-700" : "bg-gray-50"
+                                }`}>
+                                  <div>
+                                    <span className={darkMode ? "text-gray-300" : "text-gray-700"}>
+                                      {item.name}
+                                    </span>
+                                    <span className={`text-xs ml-2 ${
+                                      darkMode ? "text-gray-400" : "text-gray-500"
+                                    }`}>
+                                      x{item.quantity}
+                                    </span>
+                                  </div>
+                                  <span className={darkMode ? "text-gray-300" : "text-gray-700"}>
+                                    {formatCurrency(item.price * item.quantity)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Total */}
+                          <div className={`flex justify-between text-sm font-semibold pt-2 border-t ${
+                            darkMode ? "border-gray-700" : "border-gray-200"
+                          }`}>
+                            <span className={darkMode ? "text-gray-300" : "text-gray-700"}>Total</span>
+                            <span className={darkMode ? "text-white" : "text-gray-900"}>
+                              {formatCurrency(order.total)}
+                            </span>
+                          </div>
+
+                          {/* Notes if any */}
+                          {order.notes && (
+                            <div className={`p-2 rounded text-sm ${
+                              darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-50 text-gray-600"
+                            }`}>
+                              <AlertCircle size={14} className="inline mr-1" />
+                              {order.notes}
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {order.status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() => updateOrderStatus(order.id, "confirmed")}
+                                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                                >
+                                  Confirm Order
+                                </button>
+                                <button
+                                  onClick={() => updateOrderStatus(order.id, "cancelled")}
+                                  className="flex-1 sm:flex-none px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                            {order.status === "confirmed" && (
+                              <button
+                                onClick={() => updateOrderStatus(order.id, "delivered")}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+                              >
+                                Mark as Delivered
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+
+            {/* No Results */}
+            {filteredOrders.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`text-center py-12 ${
+                  darkMode ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
+                <Package size={48} className="mx-auto mb-3 opacity-50" />
+                <p className="text-lg font-medium mb-1">No orders found</p>
+                <p className="text-sm">Try adjusting your filters</p>
+              </motion.div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Orders;

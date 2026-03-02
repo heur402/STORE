@@ -27,14 +27,6 @@ const navSections = [
       { name: "Orders", path: "/orders", icon: ShoppingCart },
     ],
   },
-  {
-    title: "Finance",
-    icon: CreditCard,
-    items: [
-      { name: "Debtors", path: "/debtors", icon: Users },
-      { name: "Active Debts", path: "/debts/active", icon: CreditCard },
-    ],
-  },
 ];
 
 const Sidebar = ({ darkMode, toggleDarkMode }) => {
@@ -94,9 +86,8 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-4 py-4 border-b transition-colors ${
-            darkMode ? "border-gray-800" : "border-gray-200"
-          }`}
+          className={`flex items-center justify-between px-4 py-4 border-b transition-colors ${darkMode ? "border-gray-800" : "border-gray-200"
+            }`}
         >
           <AnimatePresence>
             {!collapsed && (
@@ -106,9 +97,8 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.35 }}
-                className={`${
-                  darkMode ? "text-gray-200" : "text-gray-800"
-                } text-lg font-semibold ml-1`}
+                className={`${darkMode ? "text-gray-200" : "text-gray-800"
+                  } text-lg font-semibold ml-1`}
               >
                 Admin Panel
               </motion.h1>
@@ -118,11 +108,10 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setCollapsed(!collapsed)}
-            className={`p-2 rounded-full transition ${
-              darkMode
+            className={`p-2 rounded-full transition ${darkMode
                 ? "text-gray-400 hover:bg-gray-800"
                 : "text-gray-500 hover:bg-gray-100"
-            }`}
+              }`}
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </motion.button>
@@ -140,9 +129,8 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}
                     transition={{ duration: 0.3 }}
-                    className={`px-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-2 ${
-                      darkMode ? "text-gray-400" : "text-gray-500"
-                    }`}
+                    className={`px-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-2 ${darkMode ? "text-gray-400" : "text-gray-500"
+                      }`}
                   >
                     {section.icon && <section.icon size={14} />}
                     {section.title}
@@ -172,14 +160,12 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
                       <NavLink
                         to={item.path}
                         className={({ isActive }) =>
-                          `flex items-center gap-3 p-3 rounded-lg transition-all ${
-                            collapsed ? "justify-center px-3" : "px-4"
-                          } ${
-                            isActive
-                              ? darkMode
-                                ? "bg-indigo-900/30 border-l-4 border-indigo-400"
-                                : "bg-indigo-50 border-l-4 border-indigo-600"
-                              : darkMode
+                          `flex items-center gap-3 p-3 rounded-lg transition-all ${collapsed ? "justify-center px-3" : "px-4"
+                          } ${isActive
+                            ? darkMode
+                              ? "bg-indigo-900/30 border-l-4 border-indigo-400"
+                              : "bg-indigo-50 border-l-4 border-indigo-600"
+                            : darkMode
                               ? "hover:bg-gray-800"
                               : "hover:bg-gray-100"
                           }`
@@ -210,26 +196,27 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
             onClick={toggleDarkMode}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-3 p-3 rounded-lg w-full transition ${
-              collapsed ? "justify-center" : ""
-            } ${
-              darkMode ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-700"
-            }`}
+            className={`flex items-center gap-3 p-3 rounded-lg w-full transition ${collapsed ? "justify-center" : ""
+              } ${darkMode ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-700"
+              }`}
           >
             {darkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-700" />}
             {!collapsed && <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>}
           </motion.button>
 
           {/* User Info */}
-          <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
-            <User size={24} className={darkMode ? "text-gray-400" : "text-gray-600"} />
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className={darkMode ? "text-gray-200" : "text-gray-800"}>{adminData.name}</span>
-                <span className={darkMode ? "text-gray-400" : "text-gray-500"}>{adminData.role}</span>
-              </div>
-            )}
-          </div>
+          <NavLink to="/settings">
+            <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+              <User size={24} className={darkMode ? "text-gray-400" : "text-gray-600"} />
+              {!collapsed && (
+                <div className="flex flex-col">
+                  <span className={darkMode ? "text-gray-200" : "text-gray-800"}>{adminData.name}</span>
+                  <span className={darkMode ? "text-gray-400" : "text-gray-500"}>{adminData.role}</span>
+                </div>
+              )}
+            </div>
+          </NavLink>
+
 
           {/* Logout */}
           <motion.button
@@ -251,9 +238,8 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
           animate={{ y: 0 }}
           exit={{ y: 100 }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
-          className={`fixed bottom-0 left-0 right-0 sm:hidden z-50 flex justify-around items-center border-t ${
-            darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
-          } shadow-lg px-2`}
+          className={`fixed bottom-0 left-0 right-0 sm:hidden z-50 flex justify-around items-center border-t ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
+            } shadow-lg px-2`}
         >
           {navSections.flatMap(section => section.items).map((item, index) => {
             const Icon = item.icon;
@@ -262,12 +248,11 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
                 key={index}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex flex-col items-center justify-center py-2 px-2 transition-all ${
-                    isActive
-                      ? darkMode
-                        ? "text-indigo-400"
-                        : "text-indigo-600"
-                      : darkMode
+                  `flex flex-col items-center justify-center py-2 px-2 transition-all ${isActive
+                    ? darkMode
+                      ? "text-indigo-400"
+                      : "text-indigo-600"
+                    : darkMode
                       ? "text-gray-400 hover:text-gray-200"
                       : "text-gray-500 hover:text-gray-700"
                   }`
@@ -283,9 +268,8 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
           <div className="relative">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className={`flex flex-col items-center justify-center py-2 px-2 transition-all ${
-                darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex flex-col items-center justify-center py-2 px-2 transition-all ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"
+                }`}
             >
               <User size={22} />
               <span className="text-[10px] mt-0.5">Profile</span>
@@ -303,31 +287,27 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
                     onClick={() => setShowMobileMenu(false)}
                     className="fixed inset-0 z-40"
                   />
-                  
+
                   {/* Menu */}
                   <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className={`absolute bottom-16 right-0 w-64 rounded-xl shadow-xl overflow-hidden z-50 border ${
-                      darkMode 
-                        ? "bg-gray-800 border-gray-700" 
+                    className={`absolute bottom-16 right-0 w-64 rounded-xl shadow-xl overflow-hidden z-50 border ${darkMode
+                        ? "bg-gray-800 border-gray-700"
                         : "bg-white border-gray-200"
-                    }`}
+                      }`}
                   >
                     {/* User Info Header */}
-                    <div className={`px-4 py-3 border-b ${
-                      darkMode ? "border-gray-700" : "border-gray-100"
-                    }`}>
-                      <p className={`font-medium ${
-                        darkMode ? "text-gray-200" : "text-gray-800"
+                    <div className={`px-4 py-3 border-b ${darkMode ? "border-gray-700" : "border-gray-100"
                       }`}>
+                      <p className={`font-medium ${darkMode ? "text-gray-200" : "text-gray-800"
+                        }`}>
                         {adminData.name}
                       </p>
-                      <p className={`text-xs ${
-                        darkMode ? "text-gray-400" : "text-gray-500"
-                      }`}>
+                      <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"
+                        }`}>
                         {adminData.role}
                       </p>
                     </div>
@@ -340,11 +320,10 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
                           toggleDarkMode();
                           setShowMobileMenu(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                          darkMode 
-                            ? "hover:bg-gray-700 text-gray-300" 
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${darkMode
+                            ? "hover:bg-gray-700 text-gray-300"
                             : "hover:bg-gray-100 text-gray-700"
-                        }`}
+                          }`}
                       >
                         {darkMode ? (
                           <Sun size={18} className="text-yellow-500" />
@@ -358,11 +337,10 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
                       <NavLink
                         to="/settings"
                         onClick={() => setShowMobileMenu(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                          darkMode 
-                            ? "hover:bg-gray-700 text-gray-300" 
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${darkMode
+                            ? "hover:bg-gray-700 text-gray-300"
                             : "hover:bg-gray-100 text-gray-700"
-                        }`}
+                          }`}
                       >
                         <Settings size={18} className={darkMode ? "text-gray-400" : "text-gray-500"} />
                         <span className="text-sm">Settings</span>

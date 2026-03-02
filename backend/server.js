@@ -4,6 +4,8 @@ import cors from "cors";
 import connectDB from "./src/config/db.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import productRoutes from "./src/routes/productRoutes.js";
+import uploadRoutes from "./src/routes/uploadRoutes.js";
+import path from "path";
 
 dotenv.config();
 connectDB();
@@ -17,6 +19,10 @@ app.use(express.json());
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/upload", uploadRoutes);
+
+const __dirname = path.resolve();
+app.use("/uploads", express.static(path.join(__dirname, "/uploads")));
 
 // Test route
 app.get("/", (req, res) => {

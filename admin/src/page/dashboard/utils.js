@@ -1,6 +1,4 @@
 // src/page/dashboard/utils.js
-import { salesData } from "../../assets/assets";
-
 export const COLORS = {
   inStock: "#10b981",
   lowStock: "#f59e0b",
@@ -16,15 +14,14 @@ export const CHART_COLORS = {
   info: "#06b6d4",
 };
 
-export const processSalesData = () => {
-  // Add a check for salesData
-  if (!salesData || !Array.isArray(salesData)) {
+export const processSalesData = (salesData = []) => {
+  if (!salesData || !Array.isArray(salesData) || salesData.length === 0) {
     return [];
   }
   
   return salesData.map((item, index, array) => {
     const prevSales = index > 0 ? array[index - 1].sales : item.sales;
-    const trend = ((item.sales - prevSales) / prevSales) * 100;
+    const trend = prevSales !== 0 ? ((item.sales - prevSales) / prevSales) * 100 : 0;
     return {
       ...item,
       trend: trend > 0 ? `+${trend.toFixed(1)}%` : `${trend.toFixed(1)}%`,

@@ -4,6 +4,7 @@ import {
   loginUser,
   getUsers,
   getMe,
+  updateUserProfile,
 } from "../controllers/userController.js";
 
 
@@ -14,6 +15,7 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/me", protect, getMe);
+router.put("/profile", protect, updateUserProfile);
 
 // Protected admin route
 router.get("/", protect, admin, getUsers);

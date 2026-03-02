@@ -37,7 +37,11 @@ const AdminProductCard = ({ product, onEdit, onDelete }) => {
                 {/* IMAGE */}
                 <div className="relative w-full lg:pb-[150%] pb-80">
                     <motion.img
-                        src={product.images[0]}
+                        src={
+                            product.images[0]?.startsWith("/")
+                                ? `http://localhost:5000${product.images[0]}`
+                                : product.images[0]
+                        }
                         alt={product.name}
                         className="absolute inset-0 w-full h-full object-cover"
                         whileHover={{ scale: 1.05 }}

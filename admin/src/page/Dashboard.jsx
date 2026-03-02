@@ -2,13 +2,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import {
-  dashboardStats,  // Make sure this is correctly imported
-  stockStatus,
-  recentProducts,
-  tasks,
-  activities,
+import { 
+  dashboardStats as staticDashboardStats,
+  salesData as staticSalesData,
+  stockStatus as staticStockStatus,
+  recentProducts as staticRecentProducts,
+  tasks as staticTasks,
+  activities as staticActivities
 } from "../assets/assets";
+import { userAPI, dashboardAPI } from "../services/api";
 
 import Header from "./dashboard/Header";
 import StatsGrid from "./dashboard/StatsGrid";
@@ -25,41 +27,56 @@ const Dashboard = () => {
   const [adminData, setAdminData] = useState({ name: "Loading...", role: "" });
   const [selectedMetric, setSelectedMetric] = useState("sales");
   const [hoveredCard, setHoveredCard] = useState(null);
+  
+  // Use real data from backend
+  const [dashboardStats, setDashboardStats] = useState([]);
+  const [salesData] = useState(staticSalesData);
+  const [stockStatus, setStockStatus] = useState([]);
+  const [recentProducts, setRecentProducts] = useState([]);
+  const [tasks] = useState(staticTasks);
+  const [activities] = useState(staticActivities);
+  
   const navigate = useNavigate();
 
-  const processedSalesData = useMemo(() => processSalesData(), []);
-
-  // ✅ Fetch admin data like sidebar
+  // Fetch dashboard data
   useEffect(() => {
-    const fetchAdmin = async () => {
+    const fetchDashboardData = async () => {
       const token = localStorage.getItem("adminToken");
       if (!token) {
         navigate("/login");
         return;
       }
       try {
-        const res = await fetch("http://localhost:5000/api/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Unauthorized");
-        const data = await res.json();
-        setAdminData({ name: data.name, role: data.role });
+        // Fetch admin data
+        const userData = await userAPI.getMe();
+        setAdminData({ name: userData.name, role: userData.role });
+        
+        // Fetch dashboard stats from products
+        const stats = await dashboardAPI.getStats();
+        setDashboardStats(stats);
+        
+        // Fetch stock status
+        const stock = await dashboardAPI.getStockStatus();
+        setStockStatus(stock);
+        
+        // Fetch recent products
+        const products = await dashboardAPI.getRecentProducts();
+        setRecentProducts(products);
       } catch (err) {
         console.error(err);
-        localStorage.removeItem("adminToken");
-        navigate("/login");
+        // Use static data as fallback
+        setDashboardStats(staticDashboardStats);
+        setStockStatus(staticStockStatus);
+        setRecentProducts(staticRecentProducts);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchAdmin();
+    fetchDashboardData();
   }, [navigate]);
 
+  const processedSalesData = useMemo(() => processSalesData(salesData), [salesData]);
   const styles = useMemo(() => getStyles(darkMode), [darkMode]);
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   if (isLoading) {
     return (

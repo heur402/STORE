@@ -1,19 +1,19 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { productAPI } from "../services/api";
 
 const AddProductModal = ({ onClose, onSave, darkMode }) => {
   const [formData, setFormData] = useState({
     name: "",
-    slug: "",
     description: "",
     category: "",
-    price: 0,
-    discountPrice: 0,
-    stock: 0,
+    price: "",
+    discountPrice: "",
+    stock: "",
     status: "Active",
-    sku: "",
-    images: [],
+    images: [], // this will store the uploaded image URLs
   });
+  const [uploading, setUploading] = useState(false);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -24,15 +24,22 @@ const AddProductModal = ({ onClose, onSave, darkMode }) => {
     }));
   };
 
-  // Handle dynamic image fields
-  const handleArrayChange = (index, newValue) => {
-    const updatedImages = [...formData.images];
-    updatedImages[index] = newValue;
-    setFormData((prev) => ({ ...prev, images: updatedImages }));
-  };
+  // Handle image upload
+  const uploadFileHandler = async (e) => {
+    const file = e.target.files[0];
+    const formDataBody = new FormData();
+    formDataBody.append("image", file);
+    setUploading(true);
 
-  const addImageField = () => {
-    setFormData((prev) => ({ ...prev, images: [...prev.images, ""] }));
+    try {
+      const url = await productAPI.uploadImage(formDataBody);
+      setFormData((prev) => ({ ...prev, images: [...prev.images, url] }));
+      setUploading(false);
+    } catch (error) {
+      console.error(error);
+      setUploading(false);
+      alert("Image upload failed");
+    }
   };
 
   const removeImageField = (index) => {
@@ -44,20 +51,21 @@ const AddProductModal = ({ onClose, onSave, darkMode }) => {
   // Save new product
   const handleSave = () => {
     // Basic validation
-    if (!formData.name || !formData.slug || formData.price < 0 || formData.stock < 0) {
-      alert("Please fill required fields and ensure numbers are valid.");
+    if (!formData.name || !formData.description || !formData.category) {
+      alert("Please fill required fields.");
       return;
     }
 
+    // Convert text inputs to numbers before saving
+    const price = parseFloat(formData.price) || 0;
+    const discountPrice = parseFloat(formData.discountPrice) || 0;
+    const stock = parseInt(formData.stock, 10) || 0;
+
     onSave({
       ...formData,
-      _id: Date.now().toString(), // temporary ID
-      rating: 0,
-      reviewsCount: 0,
-      isFeatured: false,
-      isDeleted: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      price: price,
+      discountPrice: discountPrice,
+      stock: stock,
     });
   };
 
@@ -90,17 +98,6 @@ const AddProductModal = ({ onClose, onSave, darkMode }) => {
             name="name"
             placeholder="Name"
             value={formData.name}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
-              darkMode 
-                ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400" 
-                : "bg-white border-gray-300 text-gray-800 placeholder-gray-500"
-            }`}
-          />
-          <input
-            name="slug"
-            placeholder="Slug"
-            value={formData.slug}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -177,31 +174,29 @@ const AddProductModal = ({ onClose, onSave, darkMode }) => {
               Images
             </label>
             {formData.images.map((img, idx) => (
-              <div key={idx} className="flex gap-2">
-                <input
-                  type="text"
-                  value={img}
-                  onChange={(e) => handleArrayChange(idx, e.target.value)}
-                  className={`flex-1 px-4 py-2 border rounded-lg transition-colors duration-300 ${
-                    darkMode 
-                      ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400" 
-                      : "bg-white border-gray-300 text-gray-800 placeholder-gray-500"
-                  }`}
-                />
+              <div key={idx} className="flex items-center gap-2">
+                <img src={`http://localhost:5000${img}`} alt={`Product ${idx}`} className="h-10 w-10 object-cover rounded" />
+                <span className={`flex-1 text-sm truncate ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{img}</span>
                 <button
                   onClick={() => removeImageField(idx)}
-                  className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                 >
                   Remove
                 </button>
               </div>
             ))}
-            <button
-              onClick={addImageField}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg mt-1 hover:bg-green-600 transition-colors"
-            >
-              Add Image
-            </button>
+            <div>
+              <input
+                type="file"
+                id="image-file"
+                onChange={uploadFileHandler}
+                className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${darkMode
+                    ? "bg-gray-700 border-gray-600 text-gray-200"
+                    : "bg-white border-gray-300 text-gray-800"
+                  }`}
+              />
+              {uploading && <p className={darkMode ? "text-gray-300 text-sm mt-1" : "text-gray-600 text-sm mt-1"}>Uploading...</p>}
+            </div>
           </div>
 
           {/* Buttons */}
@@ -218,7 +213,9 @@ const AddProductModal = ({ onClose, onSave, darkMode }) => {
             </button>
             <button 
               onClick={handleSave} 
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={uploading}
+              className={`px-4 py-2 bg-blue-600 text-white rounded-lg transition-colors ${uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
+                }`}
             >
               Add Product
             </button>

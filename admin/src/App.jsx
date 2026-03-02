@@ -8,6 +8,7 @@ import LoginPage from "./page/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Orders from "./page/Orders";
 import AllProduct from "./components/AllProduct";
+import Setting from "./page/Setting";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="products" element={<Products />} />
           <Route path="allproduct" element={<AllProduct />} />
+          <Route path="settings" element={<Setting />} />
           <Route path="debtors" element={<Debtors />} />
           <Route path="debts/active" element={<ActiveDebts />} />
           <Route path="orders" element={<Orders />} />

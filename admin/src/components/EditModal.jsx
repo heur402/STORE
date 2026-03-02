@@ -43,13 +43,19 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
   };
 
   const handleSave = () => {
-    // Basic validation
-    if (formData.price < 0 || formData.stock < 0 || formData.discountPrice < 0) {
-      alert("Price, stock, and discount cannot be negative.");
-      return;
-    }
+    // Convert text inputs to numbers before saving
+    const price = parseFloat(formData.price) || 0;
+    const discountPrice = parseFloat(formData.discountPrice) || 0;
+    const stock = parseInt(formData.stock, 10) || 0;
 
-    onSave(formData);   // update product
+    const updatedData = {
+      ...formData,
+      price: price,
+      discountPrice: discountPrice,
+      stock: stock,
+    };
+
+    onSave(updatedData);   // update product
     onClose();          // close modal after save
   };
 
@@ -89,17 +95,6 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
                 : "bg-white border-gray-300 text-gray-800 placeholder-gray-500"
             }`}
           />
-          <input
-            name="slug"
-            placeholder="Slug"
-            value={formData?.slug ?? ""}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
-              darkMode 
-                ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400" 
-                : "bg-white border-gray-300 text-gray-800 placeholder-gray-500"
-            }`}
-          />
           <textarea
             name="description"
             placeholder="Description"
@@ -126,9 +121,9 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
           {/* Numbers */}
           <input
             name="price"
-            type="number"
+            type="text"
             placeholder="Price"
-            value={formData?.price ?? 0}
+            value={formData?.price ?? ""}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -138,9 +133,9 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
           />
           <input
             name="discountPrice"
-            type="number"
+            type="text"
             placeholder="Discount Price"
-            value={formData?.discountPrice ?? 0}
+            value={formData?.discountPrice ?? ""}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 
@@ -150,9 +145,9 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
           />
           <input
             name="stock"
-            type="number"
+            type="text"
             placeholder="Stock"
-            value={formData?.stock ?? 0}
+            value={formData?.stock ?? ""}
             onChange={handleChange}
             className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${
               darkMode 

@@ -88,13 +88,13 @@ const ProductGrid = ({ products, onEdit, onDelete, view = "grid", darkMode }) =>
               <td className="p-4 text-right space-x-2">
                 <button
                   onClick={() => onEdit(product)}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                  className="px-3 py-1 md:text-xs text-xl md:bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => onDelete(product._id)}
-                  className="px-3 py-1 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                  className="px-3 py-1 md:text-xs text-xl md:bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
                 >
                   Delete
                 </button>

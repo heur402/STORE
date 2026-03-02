@@ -1,6 +1,7 @@
 // src/page/dashboard/RecentProducts.jsx
 import React from "react";
 import { motion } from "framer-motion";
+import { NavLink, useNavigate } from "react-router-dom";
 import { item } from "./utils";
 
 const RecentProducts = ({ products, styles }) => {
@@ -61,14 +62,14 @@ const RecentProducts = ({ products, styles }) => {
                 <td className="py-3">
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
-                      product.status === "In Stock"
+                      product.stock > 10
                         ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                        : product.status === "Low Stock"
+                        : product.stock > 0 && product.stock <= 10
                           ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"
                           : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                     }`}
                   >
-                    {product.status}
+                    {product.stock > 10 ? "In Stock" : product.stock > 0 ? "Low Stock" : "Out of Stock"}
                   </span>
                 </td>
                 <td className={`py-3 ${styles.text.secondary}`}>
@@ -94,11 +95,14 @@ const RecentProducts = ({ products, styles }) => {
           </tbody>
         </table>
       </div>
-      <button
-        className={`mt-4 w-full text-sm py-2 rounded-lg border ${styles.border} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${styles.text.secondary}`}
-      >
-        View All →
-      </button>
+      <NavLink to="/allproduct">
+        <button
+          className={`mt-4 w-full text-sm py-2 rounded-lg border ${styles.border} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${styles.text.secondary}`}
+        >
+          View All →
+        </button>
+      </NavLink>
+
     </motion.div>
   );
 };

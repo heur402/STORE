@@ -4,10 +4,26 @@ import Product from "../models/Product.js";
 // Create a new product
 export const createProduct = async (req, res) => {
   try {
+    console.log("Creating product with data:", req.body);
     const product = new Product(req.body);
     const savedProduct = await product.save();
     res.status(201).json(savedProduct);
   } catch (err) {
+    console.error("Create product error:", err);
+    // Check for specific error types
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors)
+        .map((e) => e.message)
+        .join(", ");
+      return res.status(400).json({ message: messages });
+    }
+    if (err.code === 11000) {
+      // Get the actual duplicate field
+      const duplicateField = Object.keys(err.keyPattern)[0];
+      return res
+        .status(400)
+        .json({ message: `Duplicate value for field: ${duplicateField}` });
+    }
     res.status(400).json({ message: err.message });
   }
 };
@@ -25,11 +41,29 @@ export const getAllProducts = async (req, res) => {
 // Get product by ID
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findOne({ _id: req.params.id, isDeleted: false });
+    const product = await Product.findOne({
+      _id: req.params.id,
+      isDeleted: false,
+    });
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// Update a product
+export const updateProduct = async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, updatedAt: Date.now() },
+      { new: true, runValidators: true },
+    );
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
 };
 

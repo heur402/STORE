@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import SideBar from "../components/SideBar";
 import { Outlet } from "react-router-dom";
-import Display from "../components/Display";
 
 const MainPage = () => {
   const [darkMode, setDarkMode] = useState(() => {
