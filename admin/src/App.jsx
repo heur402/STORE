@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Orders from "./page/Orders";
 import AllProduct from "./components/AllProduct";
 import Setting from "./page/Setting";
+import Clients from "./page/Clients";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="debtors" element={<Debtors />} />
           <Route path="debts/active" element={<ActiveDebts />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="client" element={<Clients />} />
         </Route>
       </Routes>
     </BrowserRouter>

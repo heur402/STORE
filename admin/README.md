@@ -96,7 +96,7 @@ STORE/
 │   │   │   ├── MyDebtsPage.jsx                    # Customer debt overview
 │   │   │   ├── PaymentPage.jsx                     # Payment processing page
 │   │   │   ├── PaymentHistoryPage.jsx              # Payment history view
-│   │   │   └── ContactPage.jsx                     # Contact information page
+│   │   │   └── Contact.jsx                     # Contact information page
 │   │   ├── hooks/
 │   │   │   ├── useProducts.js                     # Custom hook for product data
 │   │   │   ├── useCart.js                          # Custom hook for cart operations

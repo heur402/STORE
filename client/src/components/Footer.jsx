@@ -14,7 +14,7 @@ const Footer = () => {
             <h3 className="font-bold text-lg mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li><Link to="/about" className="text-gray-400 hover:text-white transition">About Us</Link></li>
-              <li><Link to="/faq" className="text-gray-400 hover:text-white transition">FAQ</Link></li>
+              <li><Link to="/contact" className="text-gray-400 hover:text-white transition">FAQ</Link></li>
               <li><Link to="/terms" className="text-gray-400 hover:text-white transition">Terms & Conditions</Link></li>
             </ul>
           </div>
@@ -25,7 +25,7 @@ const Footer = () => {
             <ul className="space-y-2 text-gray-400">
               <li className="flex items-center space-x-2">
                 <Phone className="h-4 w-4" />
-                <span>+1 (555) 123-4567</span>
+                <span>+250 796 577 776</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="h-4 w-4" />
@@ -33,7 +33,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4" />
-                <span>123 Delivery St, City</span>
+                <span>KG 778 st</span>
               </li>
             </ul>
           </div>

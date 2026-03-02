@@ -25,6 +25,7 @@ const navSections = [
       { name: "Dashboard", path: "/", icon: LayoutDashboard },
       { name: "Products", path: "/products", icon: Package },
       { name: "Orders", path: "/orders", icon: ShoppingCart },
+      { name: "Client", path: "/client", icon: Users },
     ],
   },
 ];

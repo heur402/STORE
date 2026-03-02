@@ -53,16 +53,16 @@ const Navbar = () => {
   return (
     <nav
       className={`fixed w-full z-50 transition-all duration-300 ${isScrolled
-          ? "bg-white/90 backdrop-blur-lg shadow-md py-3"
-          : "bg-transparent py-6"
+        ? "bg-white/90 backdrop-blur-lg shadow-md py-3"
+        : "bg-transparent py-6"
         }`}
     >
       <div className="max-w-7xl px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <Store className={`h-8 w-8 ${isScrolled ? 'text-orange-500' : 'text-white'}  group-hover:scale-110 transition-transform duration-300`} />
-            <span className={`font-extrabold text-xl  ${isScrolled ? 'bg-gradient-to-r from-orange-600 to-orange-500 ' : 'text-white'} bg-clip-text text-transparent tracking-wide`}>
+            <Store className={`h-8 w-8 ${isScrolled ? 'text-orange-500' : 'text-gray-700'}  group-hover:scale-110 transition-transform duration-300`} />
+            <span className={`font-extrabold text-xl  ${isScrolled ? 'bg-gradient-to-r from-orange-600 to-orange-500 ' : 'bg-gray-700'} bg-clip-text text-transparent tracking-wide`}>
               STORE
             </span>
           </Link>
@@ -76,8 +76,8 @@ const Navbar = () => {
                   key={link.path}
                   to={link.path}
                   className={`relative font-medium transition-all duration-300 ${isActive
-                      ? "text-orange-500"
-                      : "text-gray-700 hover:text-orange-500"
+                    ? "text-orange-500"
+                    : "text-gray-700 hover:text-orange-500"
                     }`}
                 >
                   {link.name}
@@ -93,18 +93,21 @@ const Navbar = () => {
           {/* Right Section */}
           <div className="flex items-center gap-4">
             {/* Cart */}
-            <button
-              aria-label="Shopping Cart"
-              className="relative p-2 hover:bg-orange-50 rounded-full transition-colors"
-            >
-              <ShoppingBag className="h-5 w-5 text-gray-700" />
-              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center shadow">
-                3
-              </span>
-            </button>
+            <Link to="/cart">
+              <button
+                aria-label="Shopping Cart"
+                className="relative p-2 hover:bg-orange-50 rounded-full transition-colors"
+              >
+                <ShoppingBag className="h-5 w-5 text-gray-700" />
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-semibold rounded-full h-5 w-5 flex items-center justify-center shadow">
+                  3
+                </span>
+              </button>
+            </Link>
+
 
             {/* Profile */}
-            <div ref={profileRef} className="relative hidden md:block">
+            <div className="relative block">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center gap-2 p-2 hover:bg-orange-50 rounded-lg transition-colors"
@@ -171,8 +174,8 @@ const Navbar = () => {
                   key={link.path}
                   to={link.path}
                   className={`block py-2 px-4 rounded-lg font-medium transition ${isActive
-                      ? "bg-orange-500 text-white"
-                      : "text-gray-700 hover:bg-orange-50"
+                    ? "bg-orange-500 text-white"
+                    : "text-gray-700 hover:bg-orange-50"
                     }`}
                 >
                   {link.name}

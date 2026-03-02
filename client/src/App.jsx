@@ -9,6 +9,11 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
 import Contact from './pages/Contact';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import Orders from './pages/Orders';
+import CartPage from './pages/CartPage';
+import LoginPage from './pages/LoginPage';
 
 function App() {
   return (
@@ -18,10 +23,15 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/cart" element={<CartPage />} />
           </Routes>
           <Footer />
         </div>
