@@ -1,6 +1,8 @@
 // src/page/LoginPage.jsx
 import React from "react";
 import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 // Custom Notification Component
 const Notification = ({ message, type = "error", onClose }) => {
@@ -43,6 +45,9 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [notification, setNotification] = React.useState({ message: "", type: "error" });
 
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -60,59 +65,44 @@ const LoginPage = () => {
     e.preventDefault();
 
     try {
-      const url =
-        state === "login"
-          ? "http://localhost:5000/api/users/login"
-          : "http://localhost:5000/api/users/register";
+      if (state === "login") {
+        await login(formData.email, formData.password);
 
-      const payload =
-        state === "login"
-          ? {
-              email: formData.email,
-              password: formData.password,
-            }
-          : {
-              name: formData.name,
-              email: formData.email,
-              password: formData.password,
-              role: "admin",
-            };
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        // Show error notification
-        setNotification({ 
-          message: data.message || "Something went wrong", 
-          type: "error" 
+        setNotification({
+          message: "Admin logged in successfully!",
+          type: "success"
         });
-        return;
+
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
+      } else {
+        // Registration - direct fetch as it's a one-off for creating admins
+        const res = await fetch("http://localhost:5000/api/users/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: "admin",
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Registration failed");
+        }
+
+        setNotification({ 
+          message: "Admin account created! Please login.",
+          type: "success"
+        });
+
+        setTimeout(() => setState("login"), 1500);
       }
-
-      // Save token in localStorage
-      if (data.token) localStorage.setItem("adminToken", data.token);
-
-      // Show success notification
-      setNotification({ 
-        message: state === "login" 
-          ? "Admin logged in successfully!" 
-          : "Admin account created!",
-        type: "success" 
-      });
-
-      // Optional: redirect to admin dashboard after 2 seconds
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 2000);
-
     } catch (error) {
-      console.error(error);
       setNotification({ 
         message: error.message, 
         type: "error" 

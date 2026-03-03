@@ -118,6 +118,56 @@ const EditModal = ({ product, onClose, onSave, darkMode }) => {
             }`}
           />
 
+          {formData?.category?.toLowerCase() === 'gas' && (
+            <div className="grid grid-cols-2 gap-4 border-t border-b py-4 my-2 dark:border-gray-700">
+              <div className="space-y-1">
+                <label className={`text-xs font-bold uppercase tracking-wider ml-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cylinder Size</label>
+                <input
+                  name="cylinderSize"
+                  placeholder="e.g., 6kg, 12kg"
+                  value={formData?.cylinderSize ?? ""}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${darkMode
+                      ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400"
+                      : "bg-white border-gray-300 text-gray-800 placeholder-gray-500"
+                    }`}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className={`text-xs font-bold uppercase tracking-wider ml-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Purchase Type</label>
+                <select
+                  name="purchaseType"
+                  value={formData?.purchaseType ?? "Refill"}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${darkMode
+                      ? "bg-gray-700 border-gray-600 text-gray-200"
+                      : "bg-white border-gray-300 text-gray-800"
+                    }`}
+                >
+                  <option value="Refill">Refill</option>
+                  <option value="New Cylinder">New Cylinder</option>
+                  <option value="Both">Both</option>
+                </select>
+              </div>
+              <div className="space-y-1 col-span-2">
+                <label className={`text-xs font-bold uppercase tracking-wider ml-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Availability Status</label>
+                <select
+                  name="availabilityStatus"
+                  value={formData?.availabilityStatus ?? "In Stock"}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 border rounded-lg transition-colors duration-300 ${darkMode
+                      ? "bg-gray-700 border-gray-600 text-gray-200"
+                      : "bg-white border-gray-300 text-gray-800"
+                    }`}
+                >
+                  <option value="In Stock">In Stock</option>
+                  <option value="Out of Stock">Out of Stock</option>
+                  <option value="Limited">Limited</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           {/* Numbers */}
           <input
             name="price"

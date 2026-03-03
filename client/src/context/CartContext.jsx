@@ -8,12 +8,12 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
   const addToCart = (product) => {
-    const existing = cartItems.find((item) => item.id === product.id);
+    const existing = cartItems.find((item) => item._id === product._id);
 
     if (existing) {
       setCartItems(
         cartItems.map((item) =>
-          item.id === product.id
+          item._id === product._id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
@@ -24,15 +24,19 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (id) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+    setCartItems(cartItems.filter((item) => item._id !== id));
   };
 
   const updateQuantity = (id, qty) => {
     setCartItems(
       cartItems.map((item) =>
-        item.id === id ? { ...item, quantity: qty } : item
+        item._id === id ? { ...item, quantity: qty } : item
       )
     );
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
   };
 
   const totalItems = cartItems.reduce(
@@ -52,6 +56,7 @@ export const CartProvider = ({ children }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        clearCart,
         totalItems,
         totalPrice,
       }}

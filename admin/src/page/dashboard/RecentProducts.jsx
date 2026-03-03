@@ -88,7 +88,7 @@ const RecentProducts = ({ products, styles }) => {
                 <td
                   className={`py-3 text-right font-medium ${styles.text.primary}`}
                 >
-                  ${product.price}
+                  UGX {product.price.toLocaleString()}
                 </td>
               </motion.tr>
             ))}

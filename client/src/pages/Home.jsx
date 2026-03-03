@@ -1,12 +1,11 @@
-// pages/Home.jsx
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Clock, 
   DollarSign, 
   Shield, 
   HeadphonesIcon, 
-  Fuel, 
+  Flame, 
   Coffee, 
   Beer,
   Truck,
@@ -18,6 +17,8 @@ import {
   Users
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { productAPI } from '../services/api';
+import ProductCard from '../components/ProductCard';
 
 // Constants
 const COLORS = {
@@ -83,9 +84,9 @@ const HERO_STATS = [
 
 const CATEGORIES = [
   { 
-    icon: Fuel, 
+    icon: Flame, 
     title: 'Gas Delivery', 
-    description: 'Premium fuel at your doorstep',
+    description: 'Premium gas at your doorstep',
     features: ['Quality Guaranteed', 'Fast Service', 'Best Prices'],
     color: COLORS.secondary,
     emoji: '⛽'
@@ -111,7 +112,7 @@ const CATEGORIES = [
 const DEALS = [
   { emoji: '🍔', title: 'Combo Meal', discount: 'Save 25%', color: 'from-orange-500 to-red-500', price: '$12.99' },
   { emoji: '🥤', title: 'Cold Drinks', discount: 'Buy 2 Get 1', color: 'from-blue-500 to-cyan-500', price: 'From $2.99' },
-  { emoji: '⛽', title: 'Fuel', discount: 'Save $0.50/gal', color: 'from-purple-500 to-pink-500', price: 'Best Rate' },
+  { emoji: '🔥', title: 'Gas', discount: 'Best Prices', color: 'from-purple-500 to-pink-500', price: 'Best Rate' },
   { emoji: '🍕', title: 'Pizza Deal', discount: 'Free Delivery', color: 'from-yellow-500 to-orange-500', price: '$15.99' },
   { emoji: '🥗', title: 'Healthy Bowls', discount: '20% OFF', color: 'from-green-500 to-emerald-500', price: '$9.99' },
   { emoji: '🧋', title: 'Specialty Drinks', discount: 'Happy Hour', color: 'from-indigo-500 to-purple-500', price: 'From $3.99' }
@@ -266,6 +267,24 @@ FeatureCard.displayName = 'FeatureCard';
 
 // Main Component
 const Home = () => {
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const data = await productAPI.getAll(); // Or a specific getFeatured if implemented
+        // Take first 6 products as "deals"
+        setFeaturedProducts(data.slice(0, 6));
+      } catch (err) {
+        console.error("Failed to fetch featured products:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
   const backgroundPattern = useMemo(() => (
     <div 
       className="absolute inset-0 opacity-20"
@@ -327,7 +346,7 @@ const Home = () => {
             </h1>
             
             <p className="text-xl md:text-2xl mb-8 text-orange-100 max-w-3xl mx-auto">
-              Your one-stop shop for premium fuel, delicious food, and refreshing beverages
+              Your one-stop shop for premium gas, delicious food, and refreshing beverages
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -404,21 +423,31 @@ const Home = () => {
       <section className="py-24 bg-gradient-to-b from-gray-50 to-white">
         <div className="container mx-auto px-4">
           <SectionTitle 
-            title="Hot Deals 🔥" 
-            subtitle="Exclusive offers you don't want to miss"
+            title="Featured Products"
+            subtitle="Explore our top-rated selection of fresh products"
           />
 
-          <motion.div
-            variants={ANIMATION_VARIANTS.staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true, amount: 0.3 }}
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
-          >
-            {DEALS.map((deal, index) => (
-              <DealCard key={index} deal={deal} index={index} />
-            ))}
-          </motion.div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 animate-pulse">
+                  <div className="h-48 bg-gray-100 rounded-2xl mb-4" />
+                  <div className="h-6 bg-gray-100 rounded-full w-3/4 mb-2" />
+                  <div className="h-4 bg-gray-100 rounded-full w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-gray-500">No products available at the moment.</p>
+            </div>
+          )}
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -426,9 +455,9 @@ const Home = () => {
             viewport={{ once: true }}
             className="text-center mt-12"
           >
-            <button className="text-orange-600 font-semibold hover:text-orange-700 transition-colors inline-flex items-center">
-              View All Deals <ArrowRight className="h-4 w-4 ml-2" />
-            </button>
+            <NavLink to="/products" className="text-orange-600 font-semibold hover:text-orange-700 transition-colors inline-flex items-center">
+              View All Products <ArrowRight className="h-4 w-4 ml-2" />
+            </NavLink>
           </motion.div>
         </div>
       </section>
@@ -473,7 +502,7 @@ const Home = () => {
               <div className="absolute -top-4 left-8 text-6xl text-orange-500 opacity-20">"</div>
               <div className="relative">
                 <p className="text-xl md:text-2xl text-gray-700 mb-6">
-                  "The fastest delivery service I've ever used! Got my fuel and snacks within 15 minutes. 
+                  "The fastest delivery service I've ever used! Got my gas and snacks within 15 minutes. 
                   The app is super easy to use and the customer support is amazing."
                 </p>
                 <div className="flex items-center">

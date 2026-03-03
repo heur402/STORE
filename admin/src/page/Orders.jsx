@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -20,13 +20,13 @@ import {
   AlertCircle,
   RefreshCw
 } from "lucide-react";
+import { orderAPI } from "../services/api";
 
 const Orders = () => {
   const { darkMode } = useOutletContext();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [filter, setFilter] = useState("all"); // all, pending, confirmed, delivered, cancelled
+  const [filter, setFilter] = useState("all"); 
   const [searchTerm, setSearchTerm] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -36,92 +36,76 @@ const Orders = () => {
     pending: 0,
     confirmed: 0,
     delivered: 0,
+    outDelivery: 0,
     cancelled: 0
   });
 
-  // Simulate fetching orders
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  // Update stats when orders change
-  useEffect(() => {
-    calculateStats();
-  }, [orders]);
-
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      // Simulate API call - replace with actual API
-      setTimeout(() => {
-        const mockOrders = generateMockOrders();
-        setOrders(mockOrders);
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      setLoading(false);
-    }
-  };
-
-  const generateMockOrders = () => {
-    const statuses = ["pending", "confirmed", "delivered", "cancelled"];
-    const paymentMethods = ["cash", "card", "mobile money"];
-    
-    return Array.from({ length: 15 }, (_, i) => ({
-      id: `ORD-${String(i + 1).padStart(4, '0')}`,
-      customerName: `Customer ${i + 1}`,
-      customerPhone: `+250 78${Math.floor(1000000 + Math.random() * 9000000)}`,
-      customerAddress: `Kigali, Rwanda`,
-      items: Array.from({ length: Math.floor(1 + Math.random() * 4) }, (_, j) => ({
-        name: `Product ${j + 1}`,
-        quantity: Math.floor(1 + Math.random() * 3),
-        price: Math.floor(5000 + Math.random() * 50000),
-      })),
-      total: 0,
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-      notes: Math.random() > 0.7 ? "Please call before delivery" : "",
-    })).map(order => ({
-      ...order,
-      total: order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    }));
-  };
-
-  const calculateStats = () => {
+  const calculateStats = (ordersList) => {
     const newStats = {
-      total: orders.length,
-      pending: orders.filter(o => o.status === "pending").length,
-      confirmed: orders.filter(o => o.status === "confirmed").length,
-      delivered: orders.filter(o => o.status === "delivered").length,
-      cancelled: orders.filter(o => o.status === "cancelled").length,
+      total: ordersList.length,
+      pending: ordersList.filter(o => o.orderStatus?.toLowerCase() === "pending").length,
+      confirmed: ordersList.filter(o => o.orderStatus?.toLowerCase() === "confirmed").length,
+      outDelivery: ordersList.filter(o => o.orderStatus?.toLowerCase() === "out for delivery").length,
+      delivered: ordersList.filter(o => o.orderStatus?.toLowerCase() === "delivered").length,
+      cancelled: ordersList.filter(o => o.orderStatus?.toLowerCase() === "cancelled").length,
     };
     setStats(newStats);
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await orderAPI.getAll();
+      setOrders(data);
+      calculateStats(data);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      addNotification({
+        id: Date.now(),
+        message: "Failed to fetch orders",
+        type: "error",
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Add notification
-    const order = orders.find(o => o.id === orderId);
-    addNotification({
-      id: Date.now(),
-      orderId,
-      message: `Order ${orderId} ${newStatus === 'confirmed' ? 'confirmed' : newStatus === 'delivered' ? 'delivered' : 'updated'}`,
-      type: newStatus === 'cancelled' ? 'error' : 'success',
-      timestamp: new Date().toISOString()
-    });
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await orderAPI.updateStatus(orderId, newStatus);
+
+      const updatedOrders = orders.map(order =>
+        order._id === orderId ? { ...order, orderStatus: newStatus } : order
+      );
+
+      setOrders(updatedOrders);
+      calculateStats(updatedOrders);
+
+      const order = orders.find(o => o._id === orderId);
+      addNotification({
+        id: Date.now(),
+        orderId,
+        message: `Order ${order?.orderNumber || '#' + orderId.slice(-6).toUpperCase()} moved to ${newStatus}`,
+        type: 'success',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      addNotification({
+        id: Date.now(),
+        message: `Update failed: ${error.message}`,
+        type: 'error',
+        timestamp: new Date().toISOString()
+      });
+    }
   };
 
   const addNotification = (notification) => {
     setNotifications(prev => [notification, ...prev].slice(0, 10));
-    
-    // Auto-hide notification after 5 seconds
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
     }, 5000);
@@ -132,32 +116,35 @@ const Orders = () => {
   };
 
   const filteredOrders = orders.filter(order => {
-    const matchesFilter = filter === "all" || order.status === filter;
+    const matchesFilter = filter === "all" || order.orderStatus?.toLowerCase() === filter.toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerPhone.includes(searchTerm);
+      order._id?.toLowerCase().includes(searchLower) ||
+      order.user?.name?.toLowerCase().includes(searchLower) ||
+      order.user?.email?.toLowerCase().includes(searchLower);
     return matchesFilter && matchesSearch;
   });
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status?.toLowerCase()) {
       case "pending": return "bg-yellow-500";
       case "confirmed": return "bg-blue-500";
       case "delivered": return "bg-green-500";
       case "cancelled": return "bg-red-500";
+      case "out for delivery": return "bg-purple-500";
       default: return "bg-gray-500";
     }
   };
 
   const getStatusText = (status) => {
+    if (!status) return "Unknown";
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-RW", {
+    return new Intl.NumberFormat("en-UG", {
       style: "currency",
-      currency: "RWF",
+      currency: "UGX",
       minimumFractionDigits: 0,
     }).format(amount);
   };
@@ -183,14 +170,13 @@ const Orders = () => {
         darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
       }`}>
         <div className="max-w-7xl mx-auto">
-          <div className="flex  sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex sm:flex-row sm:items-center sm:justify-between gap-3">
             <h1 className={`text-xl sm:text-2xl font-bold ${
               darkMode ? "text-white" : "text-gray-900"
             }`}>
               Orders Management
             </h1>
-            
-            {/* Notification Bell */}
+
             <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -206,7 +192,6 @@ const Orders = () => {
                 )}
               </button>
 
-              {/* Notifications Dropdown */}
               <AnimatePresence>
                 {showNotifications && (
                   <>
@@ -303,6 +288,7 @@ const Orders = () => {
             { label: "Total", value: stats.total, icon: ShoppingBag, color: "blue" },
             { label: "Pending", value: stats.pending, icon: Clock, color: "yellow" },
             { label: "Confirmed", value: stats.confirmed, icon: CheckCircle, color: "green" },
+            { label: "Out for Delivery", value: stats.outDelivery, icon: Truck, color: "orange" },
             { label: "Delivered", value: stats.delivered, icon: Truck, color: "purple" },
             { label: "Cancelled", value: stats.cancelled, icon: XCircle, color: "red" },
           ].map((stat, index) => {
@@ -311,6 +297,7 @@ const Orders = () => {
               blue: darkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-600",
               yellow: darkMode ? "bg-yellow-900/30 text-yellow-400" : "bg-yellow-100 text-yellow-600",
               green: darkMode ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-600",
+              orange: darkMode ? "bg-orange-900/30 text-orange-400" : "bg-orange-100 text-orange-600",
               purple: darkMode ? "bg-purple-900/30 text-purple-400" : "bg-purple-100 text-purple-600",
               red: darkMode ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-600",
             };
@@ -373,9 +360,7 @@ const Orders = () => {
                 onClick={() => setFilter(status)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   filter === status
-                    ? darkMode
-                      ? "bg-indigo-600 text-white"
-                      : "bg-indigo-600 text-white"
+                  ? "bg-indigo-600 text-white"
                     : darkMode
                     ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -408,7 +393,7 @@ const Orders = () => {
             <AnimatePresence>
               {filteredOrders.map((order, index) => (
                 <motion.div
-                  key={order.id}
+                  key={order._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -417,22 +402,21 @@ const Orders = () => {
                     darkMode ? "bg-gray-800" : "bg-white"
                   }`}
                 >
-                  {/* Order Header - Always Visible */}
                   <div
-                    onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                    onClick={() => setExpandedOrder(expandedOrder === order._id ? null : order._id)}
                     className={`p-4 cursor-pointer transition-colors ${
                       darkMode ? "hover:bg-gray-700" : "hover:bg-gray-50"
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <div className={`w-2 h-2 mt-2 rounded-full ${getStatusColor(order.status)}`} />
+                        <div className={`w-2 h-2 mt-2 rounded-full ${getStatusColor(order.orderStatus)}`} />
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className={`font-semibold ${
                               darkMode ? "text-white" : "text-gray-900"
                             }`}>
-                              {order.id}
+                              {order.orderNumber || `#${order._id?.slice(-8).toUpperCase()}`}
                             </h3>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                               darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
@@ -445,7 +429,7 @@ const Orders = () => {
                             <span className={`text-sm ${
                               darkMode ? "text-gray-300" : "text-gray-600"
                             }`}>
-                              {order.customerName}
+                              {order.user?.name || "Unknown Customer"}
                             </span>
                           </div>
                         </div>
@@ -456,15 +440,15 @@ const Orders = () => {
                           <p className={`text-sm font-semibold ${
                             darkMode ? "text-white" : "text-gray-900"
                           }`}>
-                            {formatCurrency(order.total)}
+                            {formatCurrency(order.totalPrice)}
                           </p>
                           <p className={`text-xs ${
                             darkMode ? "text-gray-400" : "text-gray-500"
                           }`}>
-                            {order.items.length} items
+                            {order.orderItems?.length || 0} items
                           </p>
                         </div>
-                        {expandedOrder === order.id ? (
+                        {expandedOrder === order._id ? (
                           <ChevronUp size={20} className={darkMode ? "text-gray-400" : "text-gray-500"} />
                         ) : (
                           <ChevronDown size={20} className={darkMode ? "text-gray-400" : "text-gray-500"} />
@@ -472,22 +456,20 @@ const Orders = () => {
                       </div>
                     </div>
 
-                    {/* Status Badge */}
                     <div className="flex items-center gap-2 mt-3">
-                      <span className={`text-xs px-2 py-1 rounded-full text-white ${getStatusColor(order.status)}`}>
-                        {getStatusText(order.status)}
+                      <span className={`text-xs px-2 py-1 rounded-full text-white ${getStatusColor(order.orderStatus)}`}>
+                        {getStatusText(order.orderStatus)}
                       </span>
                       <span className={`text-xs px-2 py-1 rounded-full ${
                         darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"
                       }`}>
-                        {order.paymentMethod}
+                        {order.paymentMethod} • {order.paymentStatus}
                       </span>
                     </div>
                   </div>
 
-                  {/* Expanded Details */}
                   <AnimatePresence>
-                    {expandedOrder === order.id && (
+                    {expandedOrder === order._id && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -498,30 +480,42 @@ const Orders = () => {
                         }`}
                       >
                         <div className="p-4 space-y-4">
-                          {/* Customer Details */}
-                          <div className="space-y-2">
-                            <h4 className={`text-sm font-semibold ${
-                              darkMode ? "text-gray-300" : "text-gray-700"
-                            }`}>
-                              Customer Details
-                            </h4>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Phone size={14} className={darkMode ? "text-gray-500" : "text-gray-400"} />
-                                <span className={darkMode ? "text-gray-300" : "text-gray-600"}>
-                                  {order.customerPhone}
-                                </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <h4 className={`text-sm font-semibold ${darkMode ? "text-gray-300" : "text-gray-700"
+                                }`}>
+                                Customer & Delivery
+                              </h4>
+                              <div className="space-y-1">
+                                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                                  <User size={12} className="inline mr-1" /> {order.user?.email}
+                                </p>
+                                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                                  <MapPin size={12} className="inline mr-1" />
+                                  {order.deliveryAddress ?
+                                    `${order.deliveryAddress.street}, ${order.deliveryAddress.city}` :
+                                    "No address provided"}
+                                </p>
                               </div>
-                              <div className="flex items-center gap-2 text-sm">
-                                <MapPin size={14} className={darkMode ? "text-gray-500" : "text-gray-400"} />
-                                <span className={darkMode ? "text-gray-300" : "text-gray-600"}>
-                                  {order.customerAddress}
-                                </span>
+                            </div>
+                            <div className="space-y-2">
+                              <h4 className={`text-sm font-semibold ${darkMode ? "text-gray-300" : "text-gray-700"
+                                }`}>
+                                Payment Info
+                              </h4>
+                              <div className="space-y-1">
+                                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+                                  <CreditCard size={12} className="inline mr-1" /> {order.paymentMethod} ({order.paymentStatus})
+                                </p>
+                                {order.isPaid && (
+                                  <p className="text-xs text-green-500 font-medium">
+                                    Paid successfully on {new Date(order.paidAt).toLocaleDateString()}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </div>
 
-                          {/* Order Items */}
                           <div>
                             <h4 className={`text-sm font-semibold mb-2 ${
                               darkMode ? "text-gray-300" : "text-gray-700"
@@ -529,7 +523,7 @@ const Orders = () => {
                               Items
                             </h4>
                             <div className="space-y-2">
-                              {order.items.map((item, idx) => (
+                              {order.orderItems?.map((item, idx) => (
                                 <div key={idx} className={`flex justify-between text-sm p-2 rounded ${
                                   darkMode ? "bg-gray-700" : "bg-gray-50"
                                 }`}>
@@ -551,47 +545,43 @@ const Orders = () => {
                             </div>
                           </div>
 
-                          {/* Total */}
                           <div className={`flex justify-between text-sm font-semibold pt-2 border-t ${
                             darkMode ? "border-gray-700" : "border-gray-200"
                           }`}>
-                            <span className={darkMode ? "text-gray-300" : "text-gray-700"}>Total</span>
+                            <span className={darkMode ? "text-gray-300" : "text-gray-700"}>Total Amount</span>
                             <span className={darkMode ? "text-white" : "text-gray-900"}>
-                              {formatCurrency(order.total)}
+                              {formatCurrency(order.totalPrice)}
                             </span>
                           </div>
 
-                          {/* Notes if any */}
-                          {order.notes && (
-                            <div className={`p-2 rounded text-sm ${
-                              darkMode ? "bg-gray-700 text-gray-300" : "bg-gray-50 text-gray-600"
-                            }`}>
-                              <AlertCircle size={14} className="inline mr-1" />
-                              {order.notes}
-                            </div>
-                          )}
-
-                          {/* Action Buttons */}
                           <div className="flex flex-wrap gap-2 pt-2">
-                            {order.status === "pending" && (
+                            {order.orderStatus === "Pending" && (
                               <>
                                 <button
-                                  onClick={() => updateOrderStatus(order.id, "confirmed")}
+                                  onClick={() => updateOrderStatus(order._id, "Confirmed")}
                                   className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
                                 >
                                   Confirm Order
                                 </button>
                                 <button
-                                  onClick={() => updateOrderStatus(order.id, "cancelled")}
+                                  onClick={() => updateOrderStatus(order._id, "Cancelled")}
                                   className="flex-1 sm:flex-none px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
                                 >
                                   Cancel
                                 </button>
                               </>
                             )}
-                            {order.status === "confirmed" && (
+                            {order.orderStatus === "Confirmed" && (
                               <button
-                                onClick={() => updateOrderStatus(order.id, "delivered")}
+                                onClick={() => updateOrderStatus(order._id, "Out for Delivery")}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors"
+                              >
+                                Out for Delivery
+                              </button>
+                            )}
+                            {order.orderStatus === "Out for Delivery" && (
+                              <button
+                                onClick={() => updateOrderStatus(order._id, "Delivered")}
                                 className="flex-1 sm:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
                               >
                                 Mark as Delivered
@@ -606,7 +596,6 @@ const Orders = () => {
               ))}
             </AnimatePresence>
 
-            {/* No Results */}
             {filteredOrders.length === 0 && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -617,7 +606,7 @@ const Orders = () => {
               >
                 <Package size={48} className="mx-auto mb-3 opacity-50" />
                 <p className="text-lg font-medium mb-1">No orders found</p>
-                <p className="text-sm">Try adjusting your filters</p>
+                  <p className="text-sm">Try adjusting your filters or search term</p>
               </motion.div>
             )}
           </div>

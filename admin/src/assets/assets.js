@@ -29,7 +29,7 @@ export const stockStatus = [
 ];
 
 /* ================= RECENT PRODUCTS ================= */
-/* 🔥 Updated with Drinks, Food, Fuel categories */
+/* 🔥 Updated with Drinks, Food, Gas categories */
 
 export const recentProducts = [
   {
@@ -118,10 +118,10 @@ export const recentProducts = [
   },
   {
     _id: "5",
-    name: "Petrol 1L",
-    slug: "petrol-1l",
-    description: "High-quality petrol fuel per litre.",
-    category: "Fuel",
+    name: "Gas Refill 6kg",
+    slug: "gas-refill-6kg",
+    description: "High-quality cooking gas refill for standard home cylinders.",
+    category: "Gas",
     price: 2400,
     discountPrice: 0,
     stock: 0,
@@ -129,7 +129,7 @@ export const recentProducts = [
     images: [
       "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80",
     ],
-    sku: "FUL-PET-005",
+    sku: "GAS-REF-005",
     rating: 4.0,
     reviewsCount: 35,
     isFeatured: false,
@@ -139,10 +139,10 @@ export const recentProducts = [
   },
   {
     _id: "6",
-    name: "Diesel 1L",
-    slug: "diesel-1l",
-    description: "Premium diesel fuel per litre for engines.",
-    category: "Fuel",
+    name: "New Gas Cylinder 12kg",
+    slug: "new-gas-cylinder-12kg",
+    description: "Premium brand new gas cylinder including first fill.",
+    category: "Gas",
     price: 10000,
     discountPrice: 1000,
     stock: 200,
@@ -150,7 +150,7 @@ export const recentProducts = [
     images: [
       "https://images.unsplash.com/photo-1581091870627-3a1c2d2a3e8c?auto=format&fit=crop&w=800&q=80",
     ],
-    sku: "FUL-DIE-006",
+    sku: "GAS-NEW-006",
     rating: 4.4,
     reviewsCount: 64,
     isFeatured: true,

@@ -10,6 +10,22 @@ const productSchema = new mongoose.Schema({
   stock: { type: Number, default: 0 },
   status: { type: String, default: "Active" },
   images: { type: [String], default: [] },
+  // Gas specific fields
+  cylinderSize: { 
+    type: String, 
+    enum: ["6kg", "12kg", "20kg", "25kg", ""], 
+    default: "" 
+  },
+  purchaseType: { 
+    type: String, 
+    enum: ["Refill", "New", ""], 
+    default: "" 
+  },
+  availabilityStatus: { 
+    type: String, 
+    enum: ["In Stock", "Out of Stock"], 
+    default: "In Stock" 
+  },
   rating: { type: Number, default: 0 },
   reviewsCount: { type: Number, default: 0 },
   isFeatured: { type: Boolean, default: false },

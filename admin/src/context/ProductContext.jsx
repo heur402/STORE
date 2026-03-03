@@ -43,6 +43,9 @@ export const ProductProvider = ({ children }) => {
         stock: Number(updatedProduct.stock) || 0,
         status: updatedProduct.status || "Active",
         images: updatedProduct.images || [],
+        cylinderSize: updatedProduct.cylinderSize || "",
+        purchaseType: updatedProduct.purchaseType || "Refill",
+        availabilityStatus: updatedProduct.availabilityStatus || "In Stock",
       };
 
       // Update via API
@@ -84,6 +87,9 @@ export const ProductProvider = ({ children }) => {
         stock: Number(newProduct.stock) || 0,
         status: newProduct.status || "Active",
         images: newProduct.images || [],
+        cylinderSize: newProduct.cylinderSize || "",
+        purchaseType: newProduct.purchaseType || "Refill",
+        availabilityStatus: newProduct.availabilityStatus || "In Stock",
       };
 
       const savedProduct = await productAPI.create(productData);

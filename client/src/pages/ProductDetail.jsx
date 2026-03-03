@@ -1,5 +1,4 @@
-// pages/ProductDetail.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -14,42 +13,39 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { productAPI } from '../services/api';
 
 const ProductDetail = () => {
   const { id } = useParams();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const { dispatch } = useCart();
+  const { addToCart } = useCart();
 
-  // Mock product data (in real app, fetch based on id)
-  const product = {
-    id: 1,
-    name: 'Premium Gasoline',
-    description: 'High-octane fuel with advanced cleaning agents for optimal engine performance',
-    price: 45.99,
-    originalPrice: 52.99,
-    category: 'fuel',
-    rating: 4.5,
-    reviews: 128,
-    discount: 'Save $7',
-    features: [
-      'Advanced cleaning agents prevent engine deposits',
-      'Improved fuel economy',
-      'Better acceleration',
-      'Reduced emissions',
-      'Protects critical engine parts'
-    ],
-    specifications: {
-      'Octane Rating': '93',
-      'Fuel Type': 'Gasoline',
-      'Volume': '1 Gallon',
-      'Shelf Life': '2 Years',
-      'Storage': 'Cool, dry place'
-    }
-  };
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setLoading(true);
+      try {
+        const data = await productAPI.getById(id);
+        setProduct(data);
+        setError(null);
+      } catch (err) {
+        setError("Product not found");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
 
   const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
+
+  if (loading) return <div className="pt-40 text-center text-xl font-medium">Loading product...</div>;
+  if (error || !product) return <div className="pt-40 text-center text-xl text-red-500">{error || "Product not found"}</div>;
 
   return (
     <div className="pt-20 min-h-screen bg-gray-50">
@@ -70,22 +66,35 @@ const ProductDetail = () => {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-4"
           >
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl aspect-square flex items-center justify-center">
-              <span className="text-9xl filter drop-shadow-2xl">⛽</span>
+            <div className={`bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl aspect-square flex items-center justify-center overflow-hidden border-4 border-white shadow-xl`}>
+              {product.images && product.images.length > 0 ? (
+                <img
+                  src={product.images[selectedImage]?.startsWith('http') ? product.images[selectedImage] : `http://localhost:5000${product.images[selectedImage]}`}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-9xl filter drop-shadow-2xl">⛽</span>
+              )}
             </div>
-            <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={`bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl aspect-square flex items-center justify-center transition-all ${
-                    selectedImage === i ? 'ring-2 ring-orange-500 ring-offset-2' : 'opacity-70'
-                  }`}
-                >
-                  <span className="text-3xl">⛽</span>
-                </button>
-              ))}
-            </div>
+            {product.images && product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-4">
+                {product.images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImage(i)}
+                    className={`bg-white rounded-xl aspect-square flex items-center justify-center transition-all overflow-hidden border-2 ${selectedImage === i ? 'border-orange-500 scale-95 shadow-inner' : 'border-transparent opacity-70 hover:opacity-100'
+                      }`}
+                  >
+                    <img
+                      src={img.startsWith('http') ? img : `http://localhost:5000${img}`}
+                      alt={`${product.name} ${i}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {/* Product Info */}
@@ -113,7 +122,7 @@ const ProductDetail = () => {
                   ))}
                 </div>
                 <span className="ml-2 text-gray-600">
-                  {product.rating} ({product.reviews} reviews)
+                  {product.rating} ({product.reviewsCount || 0} reviews)
                 </span>
               </div>
             </div>
@@ -126,13 +135,13 @@ const ProductDetail = () => {
               <span className="text-4xl font-bold text-orange-600">
                 ${product.price}
               </span>
-              {product.originalPrice && (
+              {product.discountPrice > 0 && (
                 <>
                   <span className="text-xl text-gray-400 line-through">
-                    ${product.originalPrice}
+                    ${(product.price + product.discountPrice).toFixed(2)}
                   </span>
                   <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">
-                    Save ${(product.originalPrice - product.price).toFixed(2)}
+                    Save ${product.discountPrice.toFixed(2)}
                   </span>
                 </>
               )}
@@ -145,17 +154,19 @@ const ProductDetail = () => {
             </div>
 
             {/* Features */}
-            <div>
-              <h3 className="font-semibold text-lg mb-2">Key Features</h3>
-              <ul className="space-y-2">
-                {product.features.map((feature, index) => (
-                  <li key={index} className="flex items-start space-x-2">
-                    <span className="text-orange-500 mt-1">•</span>
-                    <span className="text-gray-600">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {product.features && product.features.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg mb-2">Key Features</h3>
+                <ul className="space-y-2">
+                  {product.features.map((feature, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <span className="text-orange-500 mt-1">•</span>
+                      <span className="text-gray-600">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Quantity */}
             <div>
@@ -185,12 +196,7 @@ const ProductDetail = () => {
             {/* Actions */}
             <div className="flex space-x-4 pt-4">
               <button
-  onClick={() =>
-    dispatch({
-      type: 'ADD_TO_CART',
-      payload: { ...product, quantity },
-    })
-  }
+                onClick={() => addToCart({ ...product, quantity })}
   className="flex-1 bg-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-all flex items-center justify-center space-x-2"
 >
   <ShoppingCart className="h-5 w-5" />
@@ -224,12 +230,33 @@ const ProductDetail = () => {
             <div className="pt-6">
               <h3 className="font-semibold text-lg mb-4">Specifications</h3>
               <div className="bg-gray-50 rounded-xl p-4">
-                {Object.entries(product.specifications).map(([key, value]) => (
+                {product.cylinderSize && (
+                  <div className="flex py-2 border-b border-gray-200">
+                    <span className="w-1/3 text-gray-600">Cylinder Size</span>
+                    <span className="w-2/3 font-medium">{product.cylinderSize}</span>
+                  </div>
+                )}
+                {product.purchaseType && (
+                  <div className="flex py-2 border-b border-gray-200">
+                    <span className="w-1/3 text-gray-600">Type</span>
+                    <span className="w-2/3 font-medium">{product.purchaseType}</span>
+                  </div>
+                )}
+                {product.availabilityStatus && (
+                  <div className="flex py-2 border-b border-gray-200">
+                    <span className="w-1/3 text-gray-600">Availability</span>
+                    <span className="w-2/3 font-medium">{product.availabilityStatus}</span>
+                  </div>
+                )}
+                {product.specifications && Object.entries(product.specifications).map(([key, value]) => (
                   <div key={key} className="flex py-2 border-b border-gray-200 last:border-0">
                     <span className="w-1/3 text-gray-600">{key}</span>
                     <span className="w-2/3 font-medium">{value}</span>
                   </div>
                 ))}
+                {!product.cylinderSize && !product.purchaseType && !product.specifications && (
+                  <p className="text-gray-500 italic text-sm text-center py-2">No specifications available for this product.</p>
+                )}
               </div>
             </div>
           </motion.div>

@@ -4,6 +4,7 @@ import ProductGrid from '../components/ProductGrid';
 import Filters from '../components/Filters';
 import { motion } from 'framer-motion';
 import { Package, Filter as FilterIcon } from 'lucide-react';
+import { productAPI } from '../services/api';
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,121 +12,30 @@ const Products = () => {
   const [sortBy, setSortBy] = useState('default');
   const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
   const [selectedRating, setSelectedRating] = useState(0);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Simulate loading
+  // Fetch products from backend
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const data = await productAPI.getAll();
+        setProducts(data);
+        setError(null);
+      } catch (err) {
+        setError("Failed to load products. Please try again later.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
-  // Sample products data with more details
-  const products = useMemo(() => [
-    // Fuel Products
-    { 
-      id: 1, 
-      name: 'Premium Gasoline', 
-      description: 'High-octane fuel with advanced cleaning agents for optimal engine performance', 
-      price: 45.99, 
-      category: 'fuel', 
-      rating: 4.5, 
-      reviews: 128, 
-      discount: 'Save $5',
-      features: ['High octane', 'Engine protection', 'Better mileage']
-    },
-    { 
-      id: 2, 
-      name: 'Diesel Plus', 
-      description: 'Clean-burning diesel with cetane boosters and anti-gel additives', 
-      price: 42.99, 
-      category: 'fuel', 
-      rating: 4.3, 
-      reviews: 89, 
-      discount: '10% OFF',
-      features: ['Winter formula', 'Engine clean', 'Better ignition']
-    },
-    { 
-      id: 3, 
-      name: 'E85 Flex Fuel', 
-      description: 'Environmentally friendly ethanol blend for flex-fuel vehicles', 
-      price: 38.99, 
-      originalPrice: 42.99,
-      category: 'fuel', 
-      rating: 4.0, 
-      reviews: 45,
-      features: ['Renewable', 'Lower emissions', 'High octane']
-    },
-    
-    // Food Products
-    { 
-      id: 4, 
-      name: 'Classic Burger', 
-      description: 'Juicy beef patty with fresh lettuce, tomatoes, and our special sauce', 
-      price: 12.99, 
-      originalPrice: 15.99, 
-      category: 'food', 
-      rating: 4.8, 
-      reviews: 256, 
-      discount: '20% OFF',
-      features: ['100% beef', 'Fresh ingredients', 'Served hot']
-    },
-    { 
-      id: 5, 
-      name: 'Chicken Sandwich', 
-      description: 'Crispy chicken breast with pickles and signature mayo on brioche bun', 
-      price: 10.99, 
-      category: 'food', 
-      rating: 4.6, 
-      reviews: 178,
-      features: ['Crispy chicken', 'Brioche bun', 'Signature sauce']
-    },
-    { 
-      id: 6, 
-      name: 'Loaded Fries', 
-      description: 'Crispy fries topped with cheese sauce, bacon bits, and green onions', 
-      price: 8.99, 
-      category: 'food', 
-      rating: 4.4, 
-      reviews: 92,
-      features: ['Cheese sauce', 'Bacon bits', 'Shareable size']
-    },
-    
-    // Drinks Products
-    { 
-      id: 7, 
-      name: 'Cola Classic', 
-      description: 'Refreshing carbonated beverage with real sugar', 
-      price: 2.99, 
-      originalPrice: 3.99, 
-      category: 'drinks', 
-      rating: 4.5, 
-      reviews: 345, 
-      discount: '25% OFF',
-      features: ['Real sugar', 'Caffeine free option', 'Ice cold']
-    },
-    { 
-      id: 8, 
-      name: 'Energy Drink', 
-      description: 'Zero-sugar energy drink with vitamins B6 and B12', 
-      price: 3.99, 
-      category: 'drinks', 
-      rating: 4.2, 
-      reviews: 156,
-      features: ['Zero sugar', 'Vitamins B6 & B12', 'Long lasting']
-    },
-    { 
-      id: 9, 
-      name: 'Iced Coffee', 
-      description: 'Cold brew coffee with a hint of vanilla and almond milk', 
-      price: 4.99, 
-      category: 'drinks', 
-      rating: 4.7, 
-      reviews: 112,
-      features: ['Cold brew', 'Low calorie', 'Dairy-free option']
-    },
-  ], []);
-
-  const categories = ['fuel', 'food', 'drinks'];
+  const categories = ['gas', 'food', 'drinks'];
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -133,7 +43,7 @@ const Products = () => {
 
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(p => p.category === selectedCategory);
+      filtered = filtered.filter(p => p.category?.toLowerCase() === selectedCategory.toLowerCase());
     }
 
     // Filter by search term
@@ -171,7 +81,7 @@ const Products = () => {
         filtered.sort((a, b) => b.rating - a.rating);
         break;
       case 'latest':
-        filtered.sort((a, b) => b.id - a.id);
+        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         break;
       default:
         // Default sorting by rating

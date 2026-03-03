@@ -10,10 +10,12 @@ import Orders from "./page/Orders";
 import AllProduct from "./components/AllProduct";
 import Setting from "./page/Setting";
 import Clients from "./page/Clients";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
-    <BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
       <Routes>
         {/* Public route */}
         <Route path="/login" element={<LoginPage />} />
@@ -38,6 +40,7 @@ function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
 

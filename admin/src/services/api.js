@@ -64,12 +64,37 @@ export const userAPI = {
   }),
 };
 
-// Dashboard Stats APIs (you need to create these endpoints in backend)
+// Dashboard Stats APIs
 export const dashboardAPI = {
   getStats: () => fetchAPI("/products/dashboard/stats"),
   getSalesData: () => fetchAPI("/products/dashboard/sales"),
   getStockStatus: () => fetchAPI("/products/dashboard/stock-status"),
   getRecentProducts: () => fetchAPI("/products/dashboard/recent-products"),
-  getTasks: () => fetchAPI("/dashboard/tasks"), // If you want dynamic tasks
-  getActivities: () => fetchAPI("/dashboard/activities"), // If you want dynamic activities
+  getTasks: () => fetchAPI("/dashboard/tasks"), 
+  getActivities: () => fetchAPI("/dashboard/activities"), 
+};
+
+// Order APIs
+export const orderAPI = {
+  getAll: () => fetchAPI("/orders"),
+  getById: (id) => fetchAPI(`/orders/${id}`),
+  updateStatus: (id, status) => fetchAPI(`/orders/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
+  }),
+  delete: (id) => fetchAPI(`/orders/${id}`, {
+    method: "DELETE",
+  }),
+};
+
+// Client APIs
+export const clientAPI = {
+  getAll: () => fetchAPI("/users"),
+  getById: (id) => fetchAPI(`/users/${id}`),
+  suspend: (id) => fetchAPI(`/users/${id}/suspend`, {
+    method: "PATCH",
+  }),
+  activate: (id) => fetchAPI(`/users/${id}/suspend`, { 
+    method: "PATCH",
+  }),
 };

@@ -5,6 +5,8 @@ import {
   getUsers,
   getMe,
   updateUserProfile,
+  updateUserInfo,
+  suspendUser,
 } from "../controllers/userController.js";
 
 
@@ -17,7 +19,9 @@ router.post("/login", loginUser);
 router.get("/me", protect, getMe);
 router.put("/profile", protect, updateUserProfile);
 
-// Protected admin route
+// Protected admin routes
 router.get("/", protect, admin, getUsers);
+router.put("/:id", protect, admin, updateUserInfo);
+router.patch("/:id/suspend", protect, admin, suspendUser);
 
 export default router;

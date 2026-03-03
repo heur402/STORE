@@ -5,14 +5,14 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 import ProductGrid from "../components/ProductGrid";
 import EditModal from "../components/EditModal";
 import AddProductModal from "../components/AddProductModal";
-import { Search, Coffee, Utensils, Fuel, Package } from "lucide-react";
+import { Search, Coffee, Utensils, Flame, Package } from "lucide-react";
 import { useProducts } from "../context/ProductContext";
 
 const categories = [
   { name: "All", icon: Package },
   { name: "Drinks", icon: Coffee },
   { name: "Food", icon: Utensils },
-  { name: "Fuel", icon: Fuel },
+  { name: "Gas", icon: Flame },
 ];
 
 const AllProduct = () => {

@@ -8,18 +8,15 @@ import { useCart } from '../context/CartContext';
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const { dispatch } = useCart();
+  const { addToCart } = useCart();
 
   const handleAddToCart = () => {
-    dispatch({
-      type: 'ADD_TO_CART',
-      payload: product,
-    });
+    addToCart(product);
   };
 
   const getCategoryIcon = () => {
     switch(product.category) {
-      case 'fuel': return '⛽';
+      case 'gas': return '🔥';
       case 'food': return '🍔';
       case 'drinks': return '🥤';
       default: return '📦';
@@ -28,7 +25,7 @@ const ProductCard = ({ product }) => {
 
   const getCategoryColor = () => {
     switch(product.category) {
-      case 'fuel': return 'from-blue-500 to-blue-600';
+      case 'gas': return 'from-blue-500 to-blue-600';
       case 'food': return 'from-orange-500 to-red-500';
       case 'drinks': return 'from-green-500 to-teal-500';
       default: return 'from-gray-500 to-gray-600';
@@ -61,7 +58,7 @@ const ProductCard = ({ product }) => {
           className="absolute inset-0 bg-black/40 backdrop-blur-sm z-20 flex items-center justify-center rounded-2xl"
         >
           <Link
-            to={`/products/${product.id}`}
+            to={`/products/${product._id}`}
             className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-orange-500 hover:text-white transition-colors flex items-center space-x-2"
           >
             <Eye className="h-4 w-4" />
@@ -71,13 +68,22 @@ const ProductCard = ({ product }) => {
       )}
 
       {/* Image Section */}
-      <div className={`h-48 bg-gradient-to-br ${getCategoryColor()} flex items-center justify-center`}>
-        <motion.span
-          animate={{ scale: isHovered ? 1.2 : 1 }}
-          className="text-7xl"
-        >
-          {getCategoryIcon()}
-        </motion.span>
+      <div className={`h-48 bg-gradient-to-br ${getCategoryColor()} flex items-center justify-center overflow-hidden`}>
+        {product.images && product.images.length > 0 ? (
+          <motion.img
+            animate={{ scale: isHovered ? 1.1 : 1 }}
+            src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <motion.span
+            animate={{ scale: isHovered ? 1.2 : 1 }}
+            className="text-7xl"
+          >
+            {getCategoryIcon()}
+          </motion.span>
+        )}
       </div>
 
       {/* Content */}

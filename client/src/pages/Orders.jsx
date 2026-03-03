@@ -1,204 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { orderAPI } from '../services/api';
+import {
+  ShoppingBag,
+  ChevronRight,
+  Clock,
+  Package,
+  Truck,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  Search
+} from 'lucide-react';
 
 const Orders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
 
-  // Sample customer orders data
-  const myOrders = [
-    {
-      id: 'ORD-2024-001',
-      date: '2024-03-15',
-      estimatedDelivery: '2024-03-18',
-      status: 'delivered',
-      items: [
-        { 
-          id: 1,
-          name: 'Wireless Noise-Cancelling Headphones',
-          image: '🎧',
-          quantity: 1,
-          price: 199.99,
-          color: 'Black',
-          seller: 'AudioTech Store'
-        },
-        { 
-          id: 2,
-          name: 'Premium Phone Case - Silicone',
-          image: '📱',
-          quantity: 2,
-          price: 25.99,
-          color: 'Midnight Blue',
-          seller: 'GadgetGear'
-        }
-      ],
-      subtotal: 251.97,
-      shipping: 0,
-      tax: 20.16,
-      total: 272.13,
-      paymentMethod: 'Visa •••• 4242',
-      shippingAddress: '123 Main St, Apt 4B, Kigali,  KG 778 st',
-      trackingNumber: '1Z999AA10123456784',
-      carrier: 'UPS',
-      promotions: [
-        { code: 'WELCOME10', discount: 25.20 }
-      ]
-    },
-    {
-      id: 'ORD-2024-002',
-      date: '2024-03-10',
-      estimatedDelivery: '2024-03-14',
-      status: 'shipped',
-      items: [
-        { 
-          id: 3,
-          name: 'Smart Watch Series 5',
-          image: '⌚',
-          quantity: 1,
-          price: 299.99,
-          color: 'Space Gray',
-          seller: 'TechWorld'
-        },
-        { 
-          id: 4,
-          name: 'Smart Watch Screen Protector (2-pack)',
-          image: '🛡️',
-          quantity: 1,
-          price: 15.99,
-          seller: 'TechWorld'
-        }
-      ],
-      subtotal: 315.98,
-      shipping: 5.99,
-      tax: 25.28,
-      total: 347.25,
-      paymentMethod: 'PayPal',
-      shippingAddress: '123 Main St, Apt 4B, Kigali,  KG 778 st',
-      trackingNumber: '9205590164917312759482',
-      carrier: 'USPS'
-    },
-    {
-      id: 'ORD-2024-003',
-      date: '2024-03-05',
-      estimatedDelivery: '2024-03-09',
-      status: 'processing',
-      items: [
-        { 
-          id: 5,
-          name: 'Minimalist Backpack - 15L',
-          image: '🎒',
-          quantity: 1,
-          price: 79.99,
-          color: 'Olive Green',
-          seller: 'UrbanGear'
-        },
-        { 
-          id: 6,
-          name: 'Water Bottle - Stainless Steel',
-          image: '🍶',
-          quantity: 2,
-          price: 24.99,
-          color: 'Matte Black',
-          seller: 'EcoLife'
-        },
-        { 
-          id: 7,
-          name: 'Laptop Sleeve - 13 inch',
-          image: '💻',
-          quantity: 1,
-          price: 34.99,
-          color: 'Gray',
-          seller: 'UrbanGear'
-        }
-      ],
-      subtotal: 164.96,
-      shipping: 0,
-      tax: 13.20,
-      total: 178.16,
-      paymentMethod: 'Mastercard •••• 1234',
-      shippingAddress: '123 Main St, Apt 4B, Kigali,  KG 778 st'
-    },
-    {
-      id: 'ORD-2024-004',
-      date: '2024-02-28',
-      estimatedDelivery: '2024-03-03',
-      status: 'cancelled',
-      items: [
-        { 
-          id: 8,
-          name: 'Mechanical Keyboard - RGB',
-          image: '⌨️',
-          quantity: 1,
-          price: 149.99,
-          color: 'White',
-          seller: 'KeyMaster'
-        }
-      ],
-      subtotal: 149.99,
-      shipping: 7.99,
-      tax: 12.00,
-      total: 169.98,
-      paymentMethod: 'PayPal',
-      shippingAddress: '123 Main St, Apt 4B, Kigali,  KG 778 st',
-      cancellationReason: 'Changed mind - ordered different model'
-    },
-    {
-      id: 'ORD-2024-005',
-      date: '2024-03-12',
-      estimatedDelivery: '2024-03-19',
-      status: 'confirmed',
-      items: [
-        { 
-          id: 9,
-          name: 'Fitness Tracker Band',
-          image: '🏃',
-          quantity: 1,
-          price: 89.99,
-          color: 'Rose Gold',
-          seller: 'FitLife'
-        },
-        { 
-          id: 10,
-          name: 'Replacement Bands (3-pack)',
-          image: '📿',
-          quantity: 1,
-          price: 19.99,
-          color: 'Mixed',
-          seller: 'FitLife'
-        }
-      ],
-      subtotal: 109.98,
-      shipping: 0,
-      tax: 8.80,
-      total: 118.78,
-      paymentMethod: 'Visa •••• 4242',
-      shippingAddress: '123 Main St, Apt 4B, Kigali,  KG 778 st'
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const data = await orderAPI.getMyOrders();
+        setOrders(data);
+      } catch (err) {
+        setError(err.message || "Failed to fetch orders");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  const backendStatusToUI = (status) => {
+    switch (status) {
+      case 'Pending': return 'processing';
+      case 'Confirmed': return 'confirmed';
+      case 'Out for Delivery': return 'shipped';
+      case 'Delivered': return 'delivered';
+      case 'Cancelled': return 'cancelled';
+      default: return 'processing';
     }
-  ];
+  };
 
   const tabs = [
-    { id: 'all', label: 'All Orders', icon: '📦', count: myOrders.length },
-    { id: 'processing', label: 'Processing', icon: '⚙️', count: myOrders.filter(o => o.status === 'processing' || o.status === 'confirmed').length },
-    { id: 'shipped', label: 'Shipped', icon: '🚚', count: myOrders.filter(o => o.status === 'shipped').length },
-    { id: 'delivered', label: 'Delivered', icon: '✅', count: myOrders.filter(o => o.status === 'delivered').length },
-    { id: 'cancelled', label: 'Cancelled', icon: '❌', count: myOrders.filter(o => o.status === 'cancelled').length }
+    { id: 'all', label: 'All Orders', icon: '📦', count: orders.length },
+    { id: 'processing', label: 'Processing', icon: '⚙️', count: orders.filter(o => ['Pending', 'Confirmed'].includes(o.orderStatus)).length },
+    { id: 'shipped', label: 'In Transit', icon: '🚚', count: orders.filter(o => o.orderStatus === 'Out for Delivery').length },
+    { id: 'delivered', label: 'Delivered', icon: '✅', count: orders.filter(o => o.orderStatus === 'Delivered').length },
+    { id: 'cancelled', label: 'Cancelled', icon: '❌', count: orders.filter(o => o.orderStatus === 'Cancelled').length }
   ];
 
   const statusConfig = {
-    confirmed: { color: 'bg-blue-100 text-blue-800', icon: '✓', label: 'Confirmed' },
-    processing: { color: 'bg-yellow-100 text-yellow-800', icon: '⏳', label: 'Processing' },
-    shipped: { color: 'bg-purple-100 text-purple-800', icon: '🚚', label: 'Shipped' },
-    delivered: { color: 'bg-green-100 text-green-800', icon: '✅', label: 'Delivered' },
-    cancelled: { color: 'bg-red-100 text-red-800', icon: '✕', label: 'Cancelled' }
+    confirmed: { color: 'bg-indigo-100 text-indigo-800', icon: <Package className="w-5 h-5" />, label: 'Confirmed' },
+    processing: { color: 'bg-yellow-100 text-yellow-800', icon: <Clock className="w-5 h-5" />, label: 'Processing' },
+    shipped: { color: 'bg-orange-100 text-orange-800', icon: <Truck className="w-5 h-5" />, label: 'Out for Delivery' },
+    delivered: { color: 'bg-green-100 text-green-800', icon: <CheckCircle className="w-5 h-5" />, label: 'Delivered' },
+    cancelled: { color: 'bg-red-100 text-red-800', icon: <XCircle className="w-5 h-5" />, label: 'Cancelled' }
   };
 
   const filteredOrders = activeTab === 'all' 
-    ? myOrders 
-    : myOrders.filter(order => {
+    ? orders
+    : orders.filter(order => {
+      const uiStatus = backendStatusToUI(order.orderStatus);
         if (activeTab === 'processing') {
-          return order.status === 'processing' || order.status === 'confirmed';
+          return uiStatus === 'processing' || uiStatus === 'confirmed';
         }
-        return order.status === activeTab;
+      return uiStatus === activeTab;
       });
 
   // Animation variants
@@ -225,19 +96,30 @@ const Orders = () => {
     }
   };
 
+  if (loading) return (
+    <div className="pt-40 text-center min-h-screen bg-gray-50">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        className="inline-block w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full mb-4"
+      />
+      <p className="text-gray-600 font-bold text-lg tracking-tight">Fetching your orders...</p>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <motion.div 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="bg-white border-b border-gray-200"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-24">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
               <motion.h1 
-                className="text-3xl font-bold text-gray-900 flex items-center"
+                className="text-4xl font-extrabold text-gray-900 flex items-center tracking-tight"
                 whileHover={{ x: 5 }}
               >
                 <motion.span
@@ -253,61 +135,50 @@ const Orders = () => {
                 My Orders
               </motion.h1>
               <motion.p 
-                className="text-gray-600 mt-1"
+                className="text-gray-500 mt-2 font-medium"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                Track, manage, and review your orders
+                Track, manage, and review your recent purchases
               </motion.p>
             </div>
             
             {/* Quick Stats */}
             <motion.div 
-              className="flex space-x-3 mt-4 md:mt-0"
+              className="flex space-x-3 mt-6 md:mt-0"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              <motion.div 
-                variants={itemVariants}
-                className="bg-green-50 px-4 py-2 rounded-lg"
-              >
-                <p className="text-sm text-green-600">Delivered</p>
-                <p className="text-xl font-semibold text-green-700">
-                  {myOrders.filter(o => o.status === 'delivered').length}
-                </p>
-              </motion.div>
-              <motion.div 
-                variants={itemVariants}
-                className="bg-blue-50 px-4 py-2 rounded-lg"
-              >
-                <p className="text-sm text-blue-600">In Transit</p>
-                <p className="text-xl font-semibold text-blue-700">
-                  {myOrders.filter(o => o.status === 'shipped').length}
-                </p>
-              </motion.div>
-              <motion.div 
-                variants={itemVariants}
-                className="bg-purple-50 px-4 py-2 rounded-lg"
-              >
-                <p className="text-sm text-purple-600">Processing</p>
-                <p className="text-xl font-semibold text-purple-700">
-                  {myOrders.filter(o => o.status === 'processing' || o.status === 'confirmed').length}
-                </p>
-              </motion.div>
+              {[
+                { label: 'Delivered', val: orders.filter(o => o.orderStatus === 'Delivered').length, color: 'green' },
+                { label: 'In Transit', val: orders.filter(o => o.orderStatus === 'Out for Delivery').length, color: 'orange' },
+                { label: 'Confirmed', val: orders.filter(o => o.orderStatus === 'Confirmed').length, color: 'blue' }
+              ].map((stat, i) => (
+                <motion.div 
+                  key={i}
+                  variants={itemVariants}
+                  className={`bg-${stat.color}-50 px-5 py-3 rounded-2xl border border-${stat.color}-100`}
+                >
+                  <p className={`text-xs font-bold text-${stat.color}-600 uppercase tracking-wider`}>{stat.label}</p>
+                  <p className={`text-2xl font-black text-${stat.color}-700 mt-1`}>
+                    {stat.val}
+                  </p>
+                </motion.div>
+              ))}
             </motion.div>
           </div>
         </div>
       </motion.div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Tabs */}
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="flex space-x-1 bg-white p-1 rounded-xl shadow-sm mb-6 overflow-x-auto"
+          className="flex space-x-1 bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-x-auto scroller-hide"
         >
           {tabs.map((tab) => (
             <motion.button
@@ -315,18 +186,18 @@ const Orders = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              className={`flex items-center space-x-2.5 px-6 py-2.5 rounded-xl whitespace-nowrap transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-100'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
               }`}
             >
-              <span>{tab.icon}</span>
-              <span className="font-medium">{tab.label}</span>
-              <span className={`text-xs px-2 py-1 rounded-full ${
+              <span className="text-lg">{tab.icon}</span>
+              <span className="font-bold">{tab.label}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-black ${
                 activeTab === tab.id
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-600'
+                ? 'bg-orange-400 text-white'
+                : 'bg-gray-100 text-gray-500'
               }`}>
                 {tab.count}
               </span>
@@ -342,7 +213,7 @@ const Orders = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="bg-white rounded-2xl shadow-sm p-12 text-center"
+              className="bg-white rounded-3xl shadow-sm p-16 text-center border border-gray-100"
             >
               <motion.div
                 animate={{ 
@@ -350,20 +221,19 @@ const Orders = () => {
                   rotate: [0, 5, -5, 0]
                 }}
                 transition={{ duration: 3, repeat: Infinity }}
-                className="text-7xl mb-4"
+                className="text-8xl mb-6 grayscale opacity-40"
               >
-                📭
+                🛍️
               </motion.div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">No orders found</h3>
-              <p className="text-gray-600 mb-6">You haven't placed any orders in this category yet.</p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium inline-flex items-center space-x-2"
+              <h3 className="text-2xl font-black text-gray-900 mb-2">No orders found</h3>
+              <p className="text-gray-500 mb-8 max-w-md mx-auto font-medium">You haven't placed any orders in this category yet. Start shopping to fill this space!</p>
+              <Link
+                to="/products"
+                className="inline-flex items-center space-x-2 bg-orange-500 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all"
               >
-                <span>🛍️</span>
-                <span>Start Shopping</span>
-              </motion.button>
+                <span>🚀</span>
+                <span>Explored Products</span>
+              </Link>
             </motion.div>
           ) : (
             <motion.div
@@ -371,271 +241,167 @@ const Orders = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="space-y-4"
+                className="space-y-6"
             >
-              {filteredOrders.map((order) => (
-                <motion.div
-                  key={order.id}
-                  variants={itemVariants}
-                  layout
-                  className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow overflow-hidden"
-                >
-                  {/* Order Header */}
-                  <div className="p-6 border-b border-gray-100">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                      <div className="flex items-center space-x-4">
-                        <motion.div
-                          whileHover={{ rotate: 15 }}
-                          className="text-3xl"
-                        >
-                          {statusConfig[order.status].icon}
-                        </motion.div>
-                        <div>
-                          <div className="flex items-center space-x-3">
-                            <p className="font-semibold text-gray-800">{order.id}</p>
-                            <motion.span 
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${statusConfig[order.status].color}`}
-                              whileHover={{ scale: 1.05 }}
-                            >
-                              {statusConfig[order.status].label}
-                            </motion.span>
-                          </div>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Ordered on {new Date(order.date).toLocaleDateString('en-US', { 
-                              month: 'long', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-4 mt-4 md:mt-0">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">Total</p>
-                          <p className="text-xl font-bold text-gray-800">${order.total.toFixed(2)}</p>
-                        </div>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          {selectedOrder?.id === order.id ? 'Show Less' : 'View Details'}
-                        </motion.button>
-                      </div>
-                    </div>
+                {filteredOrders.map((order) => {
+                  const uiStatus = backendStatusToUI(order.orderStatus);
+                  const config = statusConfig[uiStatus];
 
-                    {/* Order Items Preview */}
-                    <div className="flex items-center space-x-4 mt-4">
-                      {order.items.slice(0, 3).map((item, idx) => (
-                        <motion.div
-                          key={idx}
-                          whileHover={{ y: -5 }}
-                          className="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-lg"
-                        >
-                          <span className="text-2xl">{item.image}</span>
-                          <span className="text-sm text-gray-600">x{item.quantity}</span>
-                        </motion.div>
-                      ))}
-                      {order.items.length > 3 && (
-                        <div className="text-sm text-gray-500">
-                          +{order.items.length - 3} more
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tracking Info for Shipped Orders */}
-                    {order.status === 'shipped' && order.trackingNumber && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-4 p-3 bg-purple-50 rounded-lg flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="text-purple-600">🚚</span>
+                  return (
+                    <motion.div
+                    key={order._id}
+                    variants={itemVariants}
+                    layout
+                    className="bg-white rounded-3xl shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all duration-300 overflow-hidden border border-gray-100"
+                  >
+                    {/* Order Header */}
+                    <div className="p-8 border-b border-gray-50">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div className="flex items-center space-x-6">
+                          <motion.div
+                            whileHover={{ rotate: 15, scale: 1.1 }}
+                            className={`w-14 h-14 rounded-2xl flex items-center justify-center ${config.color}`}
+                          >
+                            {config.icon}
+                          </motion.div>
                           <div>
-                            <p className="text-sm font-medium text-purple-800">On its way!</p>
-                            <p className="text-xs text-purple-600">
-                              {order.carrier} • Tracking: {order.trackingNumber}
+                            <div className="flex flex-wrap items-center gap-3">
+                              <p className="font-black text-xl text-gray-900">{order.orderNumber || `#${order._id.slice(-8)}`}</p>
+                              <motion.span 
+                                className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${config.color}`}
+                                whileHover={{ scale: 1.05 }}
+                              >
+                                {order.orderStatus}
+                              </motion.span>
+                            </div>
+                            <p className="text-sm text-gray-400 mt-1 font-medium">
+                              {new Date(order.createdAt).toLocaleDateString('en-US', {
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
                             </p>
                           </div>
                         </div>
-                        <motion.button
-                          whileHover={{ x: 5 }}
-                          className="text-sm text-purple-700 font-medium"
-                        >
-                          Track Package →
-                        </motion.button>
-                      </motion.div>
-                    )}
-                  </div>
 
-                  {/* Expanded Order Details */}
-                  <AnimatePresence>
-                    {selectedOrder?.id === order.id && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="border-t border-gray-100 bg-gray-50"
-                      >
-                        <div className="p-6 space-y-6">
-                          {/* Order Items */}
-                          <div>
-                            <h3 className="font-semibold text-gray-800 mb-4">Order Items</h3>
-                            <div className="space-y-4">
-                              {order.items.map((item, idx) => (
-                                <motion.div
-                                  key={idx}
-                                  initial={{ x: -20, opacity: 0 }}
-                                  animate={{ x: 0, opacity: 1 }}
-                                  transition={{ delay: idx * 0.1 }}
-                                  className="flex items-center justify-between bg-white p-4 rounded-xl"
-                                >
-                                  <div className="flex items-center space-x-4">
-                                    <span className="text-3xl">{item.image}</span>
-                                    <div>
-                                      <p className="font-medium text-gray-800">{item.name}</p>
-                                      <p className="text-sm text-gray-500">
-                                        {item.color && `Color: ${item.color} • `}
-                                        Seller: {item.seller} • Qty: {item.quantity}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <p className="font-semibold text-gray-800">
-                                    ${(item.price * item.quantity).toFixed(2)}
-                                  </p>
-                                </motion.div>
-                              ))}
-                            </div>
+                        <div className="flex items-center justify-between lg:justify-end space-x-8 pt-4 lg:pt-0 border-t lg:border-none border-gray-50">
+                          <div className="lg:text-right">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Grant Total</p>
+                            <p className="text-2xl font-black text-orange-600">UGX {order.totalPrice.toLocaleString()}</p>
                           </div>
-
-                          {/* Order Summary */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Shipping Info */}
-                            <motion.div
-                              initial={{ x: -20, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.3 }}
-                              className="bg-white p-4 rounded-xl"
+                          <div className="flex items-center gap-3">
+                            <Link
+                              to={`/orders/${order._id}`}
+                              className="px-6 py-3 bg-gray-50 text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
                             >
-                              <h4 className="font-medium text-gray-800 mb-2">Shipping Address</h4>
-                              <p className="text-sm text-gray-600">{order.shippingAddress}</p>
-                              
-                              {order.trackingNumber && (
-                                <div className="mt-3 pt-3 border-t border-gray-100">
-                                  <p className="text-sm font-medium text-gray-700">Tracking Number</p>
-                                  <p className="text-sm text-gray-600">{order.trackingNumber}</p>
-                                </div>
-                              )}
-                            </motion.div>
-
-                            {/* Payment Info */}
-                            <motion.div
-                              initial={{ x: 20, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ delay: 0.4 }}
-                              className="bg-white p-4 rounded-xl"
-                            >
-                              <h4 className="font-medium text-gray-800 mb-2">Payment Method</h4>
-                              <p className="text-sm text-gray-600">{order.paymentMethod}</p>
-                              
-                              <div className="mt-3 pt-3 border-t border-gray-100">
-                                <div className="flex justify-between text-sm mb-2">
-                                  <span className="text-gray-600">Subtotal</span>
-                                  <span className="text-gray-800">${order.subtotal.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm mb-2">
-                                  <span className="text-gray-600">Shipping</span>
-                                  <span className="text-gray-800">
-                                    {order.shipping === 0 ? 'Free' : `$${order.shipping.toFixed(2)}`}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between text-sm mb-2">
-                                  <span className="text-gray-600">Tax</span>
-                                  <span className="text-gray-800">${order.tax.toFixed(2)}</span>
-                                </div>
-                                {order.promotions && (
-                                  <div className="flex justify-between text-sm mb-2 text-green-600">
-                                    <span>Promo: {order.promotions[0].code}</span>
-                                    <span>-${order.promotions[0].discount.toFixed(2)}</span>
-                                  </div>
-                                )}
-                                <div className="flex justify-between font-semibold mt-2 pt-2 border-t border-gray-200">
-                                  <span className="text-gray-800">Total</span>
-                                  <span className="text-blue-600">${order.total.toFixed(2)}</span>
-                                </div>
-                              </div>
-                            </motion.div>
-                          </div>
-
-                          {/* Cancellation Reason */}
-                          {order.status === 'cancelled' && order.cancellationReason && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="bg-red-50 p-4 rounded-xl"
-                            >
-                              <p className="text-sm text-red-800">
-                                <span className="font-medium">Cancellation reason:</span> {order.cancellationReason}
-                              </p>
-                            </motion.div>
-                          )}
-
-                          {/* Action Buttons */}
-                          <div className="flex flex-wrap gap-3">
-                            {order.status === 'delivered' && (
-                              <>
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
-                                >
-                                  Buy Again
-                                </motion.button>
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium"
-                                >
-                                  Write a Review
-                                </motion.button>
-                              </>
-                            )}
-                            {order.status === 'shipped' && (
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium"
-                              >
-                                Track Package
-                              </motion.button>
-                            )}
-                            {order.status === 'processing' && (
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium"
-                              >
-                                Cancel Order
-                              </motion.button>
-                            )}
+                              <span>Tracking</span>
+                              <ChevronRight className="w-4 h-4" />
+                            </Link>
                             <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium"
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setSelectedOrder(selectedOrder === order._id ? null : order._id)}
+                              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${selectedOrder === order._id ? 'bg-orange-500 text-white' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                                }`}
                             >
-                              Need Help?
+                              <Search className="w-5 h-5" />
                             </motion.button>
                           </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              ))}
+                      </div>
+
+                      {/* Order Items Preview */}
+                      <div className="flex items-center flex-wrap gap-4 mt-8">
+                        {order.orderItems.slice(0, 4).map((item, idx) => (
+                          <motion.div
+                            key={idx}
+                            whileHover={{ y: -5, scale: 1.1 }}
+                            className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-xl shadow-sm border border-gray-100 group relative"
+                          >
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            <span className="absolute -top-2 -right-2 bg-gray-900 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black">
+                              {item.quantity}
+                            </span>
+                          </motion.div>
+                        ))}
+                        {order.orderItems.length > 4 && (
+                          <div className="text-xs font-black text-gray-400 tracking-widest ml-2">
+                            +{order.orderItems.length - 4} MORE
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Expanded Order Details */}
+                    <AnimatePresence>
+                      {selectedOrder === order._id && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="border-t border-gray-50 bg-gray-50/50"
+                        >
+                          <div className="p-8 space-y-8">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-4 mb-4">
+                                  <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><Package className="w-5 h-5" /></div>
+                                  <h4 className="font-black text-gray-900 uppercase text-xs tracking-widest">Order Info</h4>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between"><span className="text-gray-400">Items:</span> <span className="font-bold">{order.orderItems.length}</span></div>
+                                  <div className="flex justify-between"><span className="text-gray-400">Payment:</span> <span className="font-bold">{order.paymentMethod}</span></div>
+                                  <div className="flex justify-between"><span className="text-gray-400">Paid:</span> <span className={`font-bold ${order.isPaid ? 'text-green-600' : 'text-red-500'}`}>{order.isPaid ? 'Yes' : 'No'}</span></div>
+                                </div>
+                              </div>
+
+                              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-4 mb-4">
+                                  <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl"><Truck className="w-5 h-5" /></div>
+                                  <h4 className="font-black text-gray-900 uppercase text-xs tracking-widest">Delivery</h4>
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                  <p className="text-gray-900 font-bold line-clamp-2">{order.deliveryAddress?.street || 'No address provided'}</p>
+                                  <p className="text-gray-400 text-xs">{order.deliveryAddress?.city}, {order.deliveryAddress?.country}</p>
+                                </div>
+                              </div>
+
+                              <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-4 mb-4">
+                                  <div className="p-3 bg-green-50 text-green-600 rounded-2xl"><ShoppingBag className="w-5 h-5" /></div>
+                                  <h4 className="font-black text-gray-900 uppercase text-xs tracking-widest">Financials</h4>
+                                  </div>
+                                <div className="space-y-2 text-sm">
+                                  <div className="flex justify-between"><span className="text-gray-400">Subtotal:</span> <span className="font-bold">UGX {order.itemsPrice.toLocaleString()}</span></div>
+                                  <div className="flex justify-between"><span className="text-gray-400">Delivery:</span> <span className="font-bold">UGX {order.shippingPrice.toLocaleString()}</span></div>
+                                  <div className="flex justify-between border-t border-gray-50 pt-2"><span className="font-black text-gray-900 uppercase text-[10px]">Total:</span> <span className="font-black text-orange-600">UGX {order.totalPrice.toLocaleString()}</span></div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-end gap-3">
+                              <Link
+                                to={`/orders/${order._id}`}
+                                className="px-8 py-3.5 bg-gray-900 text-white rounded-2xl font-bold shadow-xl shadow-gray-200 hover:bg-black transition-all"
+                              >
+                                Full Order Details
+                              </Link>
+                              {order.orderStatus === 'Delivered' && (
+                                <button className="px-8 py-3.5 bg-white text-gray-900 border border-gray-200 rounded-2xl font-bold hover:bg-gray-50 transition-all">
+                                  Review Products
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

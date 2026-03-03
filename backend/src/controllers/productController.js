@@ -4,12 +4,21 @@ import Product from "../models/Product.js";
 // Create a new product
 export const createProduct = async (req, res) => {
   try {
-    console.log("Creating product with data:", req.body);
-    const product = new Product(req.body);
+    const { 
+      name, description, category, price, discountPrice, 
+      stock, status, images, cylinderSize, purchaseType, availabilityStatus 
+    } = req.body;
+    
+    const product = new Product({
+      name, description, category, price, discountPrice,
+      stock, status, images, cylinderSize, purchaseType, availabilityStatus
+    });
+    
     const savedProduct = await product.save();
     res.status(201).json(savedProduct);
   } catch (err) {
     console.error("Create product error:", err);
+    // ... rest of error handling
     // Check for specific error types
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors)
