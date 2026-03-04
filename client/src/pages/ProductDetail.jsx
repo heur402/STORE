@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { productAPI } from '../services/api';
 
 const ProductDetail = () => {
@@ -22,7 +23,9 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
   const { addToCart } = useCart();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -30,6 +33,9 @@ const ProductDetail = () => {
       try {
         const data = await productAPI.getById(id);
         setProduct(data);
+        if (user && data.likes) {
+          setIsLiked(data.likes.includes(user._id));
+        }
         setError(null);
       } catch (err) {
         setError("Product not found");
@@ -41,8 +47,31 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  const incrementQuantity = () => setQuantity(prev => prev + 1);
+  const incrementQuantity = () => setQuantity(prev => {
+    if (prev >= (product?.stock || 0)) {
+      alert("Maximum available stock reached");
+      return prev;
+    }
+    return prev + 1;
+  });
   const decrementQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
+
+  const handleToggleLike = async () => {
+    if (!user) {
+      alert("Please login to like products");
+      return;
+    }
+
+    // Optimistic UI update
+    setIsLiked(!isLiked);
+    try {
+      await productAPI.toggleLike(product._id);
+    } catch (error) {
+      // Revert if failed
+      setIsLiked(isLiked);
+      console.error("Failed to toggle like:", error);
+    }
+  };
 
   if (loading) return <div className="pt-40 text-center text-xl font-medium">Loading product...</div>;
   if (error || !product) return <div className="pt-40 text-center text-xl text-red-500">{error || "Product not found"}</div>;
@@ -133,15 +162,15 @@ const ProductDetail = () => {
             {/* Price */}
             <div className="flex items-baseline space-x-4">
               <span className="text-4xl font-bold text-orange-600">
-                ${product.price}
+                RWF {product.price.toLocaleString()}
               </span>
               {product.discountPrice > 0 && (
                 <>
                   <span className="text-xl text-gray-400 line-through">
-                    ${(product.price + product.discountPrice).toFixed(2)}
+                    RWF {(product.price + product.discountPrice).toLocaleString()}
                   </span>
                   <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">
-                    Save ${product.discountPrice.toFixed(2)}
+                    Save RWF {product.discountPrice.toLocaleString()}
                   </span>
                 </>
               )}
@@ -188,7 +217,7 @@ const ProductDetail = () => {
                   <Plus className="h-5 w-5" />
                 </button>
                 <span className="text-gray-500">
-                  Total: ${(product.price * quantity).toFixed(2)}
+                  Total: RWF {(product.price * quantity).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -202,8 +231,11 @@ const ProductDetail = () => {
   <ShoppingCart className="h-5 w-5" />
   <span>Add to Cart</span>
 </button>
-              <button className="p-4 border-2 border-gray-300 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-colors">
-                <Heart className="h-5 w-5" />
+              <button
+                onClick={handleToggleLike}
+                className="p-4 border-2 border-gray-300 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-colors"
+              >
+                <Heart className={`h-5 w-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
               </button>
             </div>
 
@@ -212,7 +244,7 @@ const ProductDetail = () => {
               <div className="text-center">
                 <Truck className="h-6 w-6 text-orange-500 mx-auto mb-2" />
                 <p className="text-sm font-medium">Free Delivery</p>
-                <p className="text-xs text-gray-500">On orders over $50</p>
+                <p className="text-xs text-gray-500">On orders over RWF 50,000</p>
               </div>
               <div className="text-center">
                 <Shield className="h-6 w-6 text-orange-500 mx-auto mb-2" />

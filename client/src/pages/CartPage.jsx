@@ -25,8 +25,8 @@ const CartPage = () => {
   const subtotal = totalPrice;
   const shippingCost = shippingMethod === 'standard' ? 0 : (shippingMethod === 'express' ? 9.99 : 19.99);
   const discount = promoApplied ? subtotal * 0.1 : 0;
-  const tax = (subtotal - discount + shippingCost) * 0.05; // 5% tax
-  const total = subtotal - discount + shippingCost + tax;
+  const tax = 0; // Tax removed as per request
+  const total = subtotal - discount + shippingCost;
 
   const handleApplyPromo = () => {
     if (promoCode.toUpperCase() === 'SAVE10') {
@@ -354,12 +354,12 @@ const CartPage = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({cartItems.length} items)</span>
-                  <span>UGX {subtotal.toLocaleString()}</span>
+                  <span>RWF {subtotal.toLocaleString()}</span>
                 </div>
 
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>{shippingCost === 0 ? 'Free' : `UGX ${shippingCost.toLocaleString()}`}</span>
+                  <span>{shippingCost === 0 ? 'Free' : `RWF ${shippingCost.toLocaleString()}`}</span>
                 </div>
 
                 {promoApplied && (
@@ -369,14 +369,11 @@ const CartPage = () => {
                     className="flex justify-between text-green-600"
                   >
                     <span>Promo Discount (10%)</span>
-                    <span>-UGX {discount.toLocaleString()}</span>
+                    <span>-RWF {discount.toLocaleString()}</span>
                   </motion.div>
                 )}
 
-                <div className="flex justify-between text-gray-600">
-                  <span>Estimated Tax (5%)</span>
-                  <span>UGX {tax.toLocaleString()}</span>
-                </div>
+
 
                 <div className="border-t border-gray-200 pt-3 mt-3">
                   <div className="flex justify-between text-lg font-bold text-gray-800">
@@ -387,7 +384,7 @@ const CartPage = () => {
                       animate={{ scale: 1 }}
                       className="text-orange-600"
                     >
-                      UGX {total.toLocaleString()}
+                      RWF {total.toLocaleString()}
                     </motion.span>
                   </div>
                 </div>
@@ -517,7 +514,8 @@ const CartPage = () => {
 
       {/* Empty Cart State */}
       {cartItems.length === 0 && (
-        <motion.div
+        <Link to="/products">
+          <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="text-center py-16"
@@ -531,6 +529,7 @@ const CartPage = () => {
             Continue Shopping
           </motion.button>
         </motion.div>
+        </Link>
       )}
     </div>
   );

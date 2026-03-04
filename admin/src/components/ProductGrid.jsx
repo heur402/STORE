@@ -37,6 +37,7 @@ const ProductGrid = ({ products, onEdit, onDelete, view = "grid", darkMode }) =>
             <th className="p-4">Category</th>
             <th className="p-4">Stock</th>
             <th className="p-4">Price</th>
+            <th className="p-4">Likes</th>
             <th className="p-4 text-right">Actions</th>
           </tr>
         </thead>
@@ -84,6 +85,13 @@ const ProductGrid = ({ products, onEdit, onDelete, view = "grid", darkMode }) =>
                     {product.price}
                   </span>
                 )}
+              </td>
+              <td className={`p-4 ${darkMode ? "text-gray-300" : "text-gray-600"
+                }`}>
+                <div className="flex items-center gap-1">
+                  <span className="text-red-500">❤️</span>
+                  {product.likes?.length || 0}
+                </div>
               </td>
               <td className="p-4 text-right space-x-2">
                 <button

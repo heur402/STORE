@@ -26,6 +26,7 @@ const productSchema = new mongoose.Schema({
     enum: ["In Stock", "Out of Stock"], 
     default: "In Stock" 
   },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   rating: { type: Number, default: 0 },
   reviewsCount: { type: Number, default: 0 },
   isFeatured: { type: Boolean, default: false },

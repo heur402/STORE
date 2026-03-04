@@ -90,3 +90,31 @@ export const deleteProduct = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Toggle like for a product
+export const likeProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const userId = req.user._id;
+    const isLiked = product.likes.includes(userId);
+
+    if (isLiked) {
+      // Unlike
+      product.likes = product.likes.filter((id) => id.toString() !== userId.toString());
+    } else {
+      // Like
+      product.likes.push(userId);
+    }
+
+    await product.save();
+    
+    res.json({ message: isLiked ? "Product unliked" : "Product liked", likes: product.likes });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

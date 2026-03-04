@@ -68,7 +68,7 @@ const RevenueChart = ({ data, darkMode, styles }) => {
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={styles.chartGrid} vertical={false} />
           <XAxis dataKey="month" stroke={styles.chartText} tick={{ fill: styles.chartText, fontSize: 12 }} />
-          <YAxis stroke={styles.chartText} tick={{ fill: styles.chartText, fontSize: 12 }} tickFormatter={(value) => `UGX ${value.toLocaleString()}`} />
+          <YAxis stroke={styles.chartText} tick={{ fill: styles.chartText, fontSize: 12 }} tickFormatter={(value) => `RWF ${value.toLocaleString()}`} />
           <Tooltip content={<CustomTooltip darkMode={darkMode} />} />
           <Area
             type="monotone"

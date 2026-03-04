@@ -68,6 +68,12 @@ export const productAPI = {
 
   // Get featured products
   getFeatured: () => fetchAPI("/products?featured=true"),
+
+  // Toggle like product
+  toggleLike: (id) =>
+    fetchAPI(`/products/${id}/like`, {
+      method: "PUT",
+    }),
 };
 
 // ============ ORDER APIs ============

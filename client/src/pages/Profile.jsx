@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { GithubIcon, InstagramIcon, TwitterIcon, Package, Star, ShoppingCart } from 'lucide-react';
+import { GithubIcon, InstagramIcon, TwitterIcon, Package, Star, ShoppingCart, UserIcon, Diamond, Link2, Phone, Mail, Calendar, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { productAPI } from '../services/api';
 import ProductCard from '../components/ProductCard';
@@ -126,8 +126,8 @@ const Profile = () => {
   };
 
   const sections = [
-    { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'security', label: 'Security', icon: '🔒' }
+    { id: 'profile', label: 'Profile', icon: <UserIcon /> },
+    { id: 'security', label: 'Security', icon: <Lock /> }
   ];
 
   // Animation variants
@@ -177,12 +177,12 @@ const Profile = () => {
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">{userData.displayName}</h1>
+              <h1 className="text-3xl font-bold text-gray-800">{userData.name}</h1>
               <div className="flex flex-wrap items-center gap-4 mt-2">
-                <p className="text-gray-600 flex items-center"><span className="mr-2">👤</span> @{userData.username}</p>
-                <p className="text-gray-600 flex items-center"><span className="mr-2">📧</span> {userData.email}</p>
+                <p className="text-gray-600 flex items-center"><span className="mr-2"><Link2 /></span> @{userData.username}</p>
+                <p className="text-gray-600 flex items-center"><span className="mr-2"><Mail /></span> {userData.email}</p>
                 <p className="text-gray-600 flex items-center">
-                  <span className="mr-2">📅</span> Member since {new Date(userData.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  <span className="mr-2"><Calendar /></span> Member since {new Date(userData.memberSince).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </p>
               </div>
             </div>
@@ -196,7 +196,7 @@ const Profile = () => {
                 }`}
                 disabled={loading}
               >
-                <span>{loading ? '⌛ Updating...' : isEditing ? '💾 Save Changes' : '✏️ Edit Profile'}</span>
+                <span>{loading ? 'Updating...' : isEditing ? 'Save Changes' : 'Edit Profile'}</span>
               </motion.button>
               
               {isEditing && (
@@ -247,11 +247,10 @@ const Profile = () => {
                 <h2 className="text-2xl font-bold text-gray-800">Profile Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[
-                    { label: 'Full Name', name: 'name', icon: '👤' },
-                    { label: 'Display Name', name: 'displayName', icon: '💎' },
-                    { label: 'Username', name: 'username', icon: '🔗' },
-                    { label: 'Email', name: 'email', icon: '📧', disabled: true },
-                    { label: 'Phone', name: 'phone', icon: '📞' }
+                    { label: 'Full Name', name: 'name', icon: <UserIcon /> },
+                    { label: 'Username', name: 'username', icon: <Link2 /> },
+                    { label: 'Email', name: 'email', icon: <Mail />, disabled: true },
+                    { label: 'Phone', name: 'phone', icon: <Phone /> }
                   ].map((field) => (
                     <div key={field.name} className="space-y-2">
                       <label className="text-sm font-medium text-gray-600 flex items-center">

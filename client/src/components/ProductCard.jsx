@@ -4,14 +4,41 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Star, Heart, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { productAPI } from '../services/api';
 
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const { user } = useAuth();
+
+  // Set initial like state if user's ID is in product.likes
+  const [isLiked, setIsLiked] = useState(
+    user && product.likes ? product.likes.includes(user._id) : false
+  );
+
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
     addToCart(product);
+  };
+
+  const handleToggleLike = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      alert("Please login to like products");
+      return;
+    }
+
+    // Optimistic UI update
+    setIsLiked(!isLiked);
+    try {
+      await productAPI.toggleLike(product._id);
+    } catch (error) {
+      // Revert if failed
+      setIsLiked(isLiked);
+      console.error("Failed to toggle like:", error);
+    }
   };
 
   const getCategoryIcon = () => {
@@ -44,7 +71,7 @@ const ProductCard = ({ product }) => {
     >
       {/* Like Button */}
       <button
-        onClick={() => setIsLiked(!isLiked)}
+        onClick={handleToggleLike}
         className="absolute top-3 right-3 z-10 p-2 bg-white rounded-full shadow-md hover:scale-110 transition-transform"
       >
         <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-500'}`} />
@@ -106,7 +133,7 @@ const ProductCard = ({ product }) => {
 
         <div className="flex items-center justify-between">
           <span className="text-xl font-bold text-gray-900">
-            ${product.price}
+            <span className='text-xs'>FRW</span>  {product.price}
           </span>
 
           <motion.button

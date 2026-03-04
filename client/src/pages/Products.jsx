@@ -5,12 +5,13 @@ import Filters from '../components/Filters';
 import { motion } from 'framer-motion';
 import { Package, Filter as FilterIcon } from 'lucide-react';
 import { productAPI } from '../services/api';
+import ProductCard from '../components/ProductCard';
 
 const Products = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('default');
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 100 });
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 }); // Increased max price
   const [selectedRating, setSelectedRating] = useState(0);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +22,27 @@ const Products = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const data = await productAPI.getAll();
-        setProducts(data);
+        const response = await productAPI.getAll();
+        console.log("API Response:", response);
+        
+        // Handle different response formats
+        let productsData = [];
+        if (Array.isArray(response)) {
+          productsData = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          productsData = response.data;
+        } else if (response && response.products && Array.isArray(response.products)) {
+          productsData = response.products;
+        } else {
+          console.error("Unexpected response format:", response);
+        }
+        
+        console.log("Products data:", productsData);
+        setProducts(productsData);
         setError(null);
       } catch (err) {
         setError("Failed to load products. Please try again later.");
-        console.error(err);
+        console.error("Error fetching products:", err);
       } finally {
         setLoading(false);
       }
@@ -39,58 +55,76 @@ const Products = () => {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
+    console.log("Filtering products. Current products:", products);
+    console.log("Current filters:", {
+      selectedCategory,
+      searchTerm,
+      priceRange,
+      selectedRating
+    });
+    
     let filtered = [...products];
 
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(p => p.category?.toLowerCase() === selectedCategory.toLowerCase());
+      filtered = filtered.filter(p => 
+        p.category?.toLowerCase() === selectedCategory.toLowerCase()
+      );
     }
 
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.features?.some(f => f.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     // Filter by price
-    filtered = filtered.filter(p => p.price >= priceRange.min && p.price <= priceRange.max);
+    filtered = filtered.filter(p => 
+      p.price >= priceRange.min && p.price <= priceRange.max
+    );
 
     // Filter by rating
     if (selectedRating > 0) {
       filtered = filtered.filter(p => p.rating >= selectedRating);
     }
 
-    // Sort products
-    switch(sortBy) {
-      case 'name-asc':
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'name-desc':
-        filtered.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating-desc':
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'latest':
-        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        break;
-      default:
-        // Default sorting by rating
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-    }
-
+    console.log("Filtered products count:", filtered.length);
     return filtered;
   }, [products, selectedCategory, searchTerm, sortBy, priceRange, selectedRating]);
+
+  // Sort products (separate from filtering)
+  const sortedAndFilteredProducts = useMemo(() => {
+    let sorted = [...filteredProducts];
+    
+    switch(sortBy) {
+      case 'name-asc':
+        sorted.sort((a, b) => a.name?.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        sorted.sort((a, b) => b.name?.localeCompare(a.name));
+        break;
+      case 'price-asc':
+        sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'price-desc':
+        sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      case 'rating-desc':
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'latest':
+        sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        break;
+      default:
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+    }
+    
+    return sorted;
+  }, [filteredProducts, sortBy]);
 
   return (
     <div className="pt-20 min-h-screen bg-gray-50">
@@ -105,6 +139,10 @@ const Products = () => {
           <p className="text-gray-600">
             Discover our wide range of quality products
           </p>
+          {/* Debug info - remove in production */}
+          <div className="mt-2 text-sm text-gray-500">
+            Total products: {products.length} | Filtered: {sortedAndFilteredProducts.length}
+          </div>
         </motion.div>
 
         {/* Filters */}
@@ -124,7 +162,7 @@ const Products = () => {
         {/* Results Count */}
         <div className="flex justify-between items-center mb-6">
           <p className="text-gray-600">
-            Showing <span className="font-semibold">{filteredProducts.length}</span> products
+            Showing <span className="font-semibold">{sortedAndFilteredProducts.length}</span> products
           </p>
           {searchTerm && (
             <p className="text-sm text-gray-500">
@@ -145,8 +183,16 @@ const Products = () => {
               </div>
             ))}
           </div>
-        ) : filteredProducts.length > 0 ? (
-          <ProductGrid products={filteredProducts} />
+        ) : error ? (
+          <div className="text-center py-20 text-red-500">
+            <p>{error}</p>
+          </div>
+        ) : sortedAndFilteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {sortedAndFilteredProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
         ) : (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}

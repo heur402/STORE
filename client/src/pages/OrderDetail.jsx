@@ -31,17 +31,29 @@ const OrderDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchOrder = async () => {
       try {
         const data = await orderAPI.getById(id);
-        setOrder(data);
+        if (isMounted) setOrder(data);
       } catch (err) {
-        setError(err.message || "Could not fetch order details");
+        if (isMounted && !order) setError(err.message || "Could not fetch order details");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+
     fetchOrder();
+
+    // Real-time polling every 10 seconds to detect delivery status changes
+    const intervalId = setInterval(() => {
+      fetchOrder();
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, [id]);
 
   if (loading) return (
@@ -65,8 +77,17 @@ const OrderDetail = () => {
     </div>
   );
 
-  const steps = ['Pending', 'Confirmed', 'Out for Delivery', 'Delivered'];
+  const steps = ['Pending', 'Out for Delivery', 'Delivered'];
   const currentStepIndex = steps.indexOf(order.orderStatus);
+  const isCancelled = order.orderStatus === 'Cancelled';
+
+  const stepColors = [
+    { active: 'bg-amber-500 border-amber-200', text: 'text-amber-600' },
+    { active: 'bg-blue-500 border-blue-200', text: 'text-blue-600' },
+    { active: 'bg-emerald-500 border-emerald-200', text: 'text-emerald-600' },
+  ];
+
+  const progressPct = currentStepIndex <= 0 ? 0 : (currentStepIndex / (steps.length - 1)) * 100;
 
   return (
     <div className="pt-30 min-h-screen bg-gray-50 pb-20">
@@ -97,33 +118,44 @@ const OrderDetail = () => {
         </div>
 
         {/* Tracking Progress */}
-        {order.orderStatus !== 'Cancelled' && (
+        {!isCancelled && (
           <div className="bg-white rounded-2xl shadow-sm p-8 mb-6 border border-gray-100">
             <h2 className="text-lg font-bold text-gray-800 mb-8">Delivery Progress</h2>
             <div className="relative">
-              {/* Progress Line */}
-              <div className="absolute top-5 left-0 w-full h-1 bg-gray-100" />
-              <div 
-                className="absolute top-5 left-0 h-1 bg-orange-500 transition-all duration-1000" 
-                style={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+              {/* Background track */}
+              <div className="absolute top-5 left-0 w-full h-1.5 bg-gray-100 rounded-full" />
+              {/* Filled track */}
+              <motion.div
+                className="absolute top-5 left-0 h-1.5 rounded-full bg-gradient-to-r from-amber-500 via-blue-500 to-emerald-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPct}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
               />
 
-              {/* Progress Steps */}
+              {/* Steps */}
               <div className="relative flex justify-between">
-                {steps.map((step, index) => (
-                  <div key={step} className="flex flex-col items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 z-10 transition-colors duration-500 ${
-                      index <= currentStepIndex ? 'bg-orange-500 border-orange-100 text-white' : 'bg-white border-gray-50 text-gray-300'
-                    }`}>
-                      {index <= currentStepIndex ? <CheckCircle className="h-5 w-5" /> : index + 1}
+                {steps.map((step, index) => {
+                  const isDone = index <= currentStepIndex;
+                  const isCurrent = index === currentStepIndex;
+                  return (
+                    <div key={step} className="flex flex-col items-center">
+                      <motion.div
+                        animate={isCurrent ? { scale: [1, 1.15, 1] } : {}}
+                        transition={{ duration: 1.5, repeat: isCurrent ? Infinity : 0, ease: 'easeInOut' }}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center border-4 z-10 transition-colors duration-500 shadow-sm ${isDone
+                            ? `${stepColors[index]?.active || 'bg-orange-500 border-orange-100'} text-white`
+                            : 'bg-white border-gray-200 text-gray-400'
+                          }`}
+                      >
+                        {isDone ? <CheckCircle className="h-5 w-5" /> : index + 1}
+                      </motion.div>
+                      <p className={`mt-3 text-xs font-bold text-center max-w-[70px] ${isDone ? 'text-gray-900' : 'text-gray-400'
+                        }`}>
+                        {step}
+                      </p>
                     </div>
-                    <p className={`mt-3 text-xs font-bold text-center ${
-                      index <= currentStepIndex ? 'text-gray-900' : 'text-gray-400'
-                    }`}>
-                      {step}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -144,26 +176,28 @@ const OrderDetail = () => {
                       <h3 className="font-bold text-gray-900">{item.name}</h3>
                       <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                     </div>
-                    <p className="font-bold text-gray-900">UGX {(item.price || 0).toLocaleString()}</p>
+                    <p className="font-bold text-gray-900">RWF {(item.price || 0).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
               <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>UGX {(order.itemsPrice || 0).toLocaleString()}</span>
+                  <span>RWF {(order.itemsPrice || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>UGX {(order.shippingPrice || 0).toLocaleString()}</span>
+                  <span>RWF {(order.shippingPrice || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax</span>
-                  <span>UGX {(order.taxPrice || 0).toLocaleString()}</span>
-                </div>
+                {order.taxPrice > 0 && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>Tax</span>
+                    <span>RWF {(order.taxPrice || 0).toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-xl font-extrabold text-orange-600 pt-2 border-t border-dashed border-gray-200">
                   <span>Total</span>
-                  <span>UGX {(order.totalPrice || 0).toLocaleString()}</span>
+                  <span>RWF {(order.totalPrice || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -225,9 +259,17 @@ const OrderDetail = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 p-4 bg-green-50 rounded-2xl border border-green-100"
+                    className="mt-3 p-4 bg-blue-50 rounded-2xl border border-blue-100"
                   >
-                    <p className="text-sm font-bold text-green-800 mb-3">Has your order arrived?</p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <motion.span
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        className="text-xl"
+                      >🚚</motion.span>
+                      <p className="text-sm font-bold text-blue-800">Your order is on the way!</p>
+                    </div>
+                    <p className="text-xs text-blue-600 mb-3">Once received, please confirm delivery below.</p>
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -237,6 +279,7 @@ const OrderDetail = () => {
                           try {
                             const updatedOrder = await orderAPI.deliver(order._id);
                             setOrder(updatedOrder);
+                            alert("Thank you for confirming receipt! 🎉");
                           } catch (err) {
                             alert(err.message || "Failed to confirm delivery");
                           } finally {
@@ -244,11 +287,29 @@ const OrderDetail = () => {
                           }
                         }
                       }}
-                      className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                     >
                       <CheckCircle className="h-4 w-4" />
-                      Confirm Receipt
+                      Confirm I Received My Order
                     </motion.button>
+                  </motion.div>
+                )}
+
+                {order.orderStatus === 'Delivered' && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-3 p-4 bg-emerald-50 rounded-2xl border border-emerald-200 flex items-center gap-3"
+                  >
+                    <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-bold text-emerald-700">Delivery confirmed ✓</p>
+                      {order.deliveredAt && (
+                        <p className="text-xs text-emerald-600 mt-0.5">
+                          on {new Date(order.deliveredAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </div>

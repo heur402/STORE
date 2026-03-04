@@ -10,6 +10,7 @@ import Orders from "./page/Orders";
 import AllProduct from "./components/AllProduct";
 import Setting from "./page/Setting";
 import Clients from "./page/Clients";
+import NotFound from "./page/NotFound";
 import { AuthProvider } from "./context/AuthContext";
 
 function App() {
@@ -38,6 +39,9 @@ function App() {
           <Route path="orders" element={<Orders />} />
           <Route path="client" element={<Clients />} />
         </Route>
+
+          {/* 404 Route */}
+          <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
     </AuthProvider>

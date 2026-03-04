@@ -8,6 +8,7 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  likeProduct,
 } from "../controllers/productController.js";
 
 import {
@@ -33,6 +34,9 @@ router.put("/:id", protect, admin, updateProduct);
 
 // Delete product → Admin only
 router.delete("/:id", protect, admin, deleteProduct);
+
+// Like/Unlike product → Logged in users only
+router.put("/:id/like", protect, likeProduct);
 
 // Public routes (anyone can view)
 router.get("/", getAllProducts);

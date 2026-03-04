@@ -17,6 +17,7 @@ import OrderDetail from './pages/OrderDetail';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -73,6 +74,9 @@ function AppContent() {
             <CartPage />
           </ProtectedRoute>
         } />
+
+        {/* 404 Route */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       {!isAuthPage && <Footer />}
     </div>

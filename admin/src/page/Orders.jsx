@@ -8,17 +8,16 @@ import {
   Clock,
   Package,
   MapPin,
-  Phone,
   User,
   CreditCard,
   ChevronDown,
   ChevronUp,
   Search,
-  Filter,
   ShoppingBag,
   Truck,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ArrowRight
 } from "lucide-react";
 import { orderAPI } from "../services/api";
 
@@ -34,21 +33,27 @@ const Orders = () => {
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
-    confirmed: 0,
-    delivered: 0,
     outDelivery: 0,
+    delivered: 0,
     cancelled: 0
   });
+  const [updatingOrder, setUpdatingOrder] = useState(null); // track which order is being updated
 
   useEffect(() => {
     fetchOrders();
+
+    // Auto-refresh orders every 10 seconds for real-time tracking
+    const intervalId = setInterval(() => {
+      fetchOrders(true); // pass true for silent fetching
+    }, 10000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const calculateStats = (ordersList) => {
     const newStats = {
       total: ordersList.length,
       pending: ordersList.filter(o => o.orderStatus?.toLowerCase() === "pending").length,
-      confirmed: ordersList.filter(o => o.orderStatus?.toLowerCase() === "confirmed").length,
       outDelivery: ordersList.filter(o => o.orderStatus?.toLowerCase() === "out for delivery").length,
       delivered: ordersList.filter(o => o.orderStatus?.toLowerCase() === "delivered").length,
       cancelled: ordersList.filter(o => o.orderStatus?.toLowerCase() === "cancelled").length,
@@ -56,8 +61,22 @@ const Orders = () => {
     setStats(newStats);
   };
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  // Delivery steps for the simplified flow
+  const DELIVERY_STEPS = ["Pending", "Out for Delivery", "Delivered"];
+
+  const getStepIndex = (status) => {
+    if (status === "Cancelled") return -1;
+    return DELIVERY_STEPS.indexOf(status);
+  };
+
+  const getStepProgress = (status) => {
+    const idx = getStepIndex(status);
+    if (idx <= 0) return 0;
+    return (idx / (DELIVERY_STEPS.length - 1)) * 100;
+  };
+
+  const fetchOrders = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await orderAPI.getAll();
       setOrders(data);
@@ -71,11 +90,12 @@ const Orders = () => {
         timestamp: new Date().toISOString()
       });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
+    setUpdatingOrder(orderId);
     try {
       await orderAPI.updateStatus(orderId, newStatus);
 
@@ -90,7 +110,7 @@ const Orders = () => {
       addNotification({
         id: Date.now(),
         orderId,
-        message: `Order ${order?.orderNumber || '#' + orderId.slice(-6).toUpperCase()} moved to ${newStatus}`,
+        message: `Order ${order?.orderNumber || '#' + orderId.slice(-6).toUpperCase()} → ${newStatus}`,
         type: 'success',
         timestamp: new Date().toISOString()
       });
@@ -101,6 +121,8 @@ const Orders = () => {
         type: 'error',
         timestamp: new Date().toISOString()
       });
+    } finally {
+      setUpdatingOrder(null);
     }
   };
 
@@ -127,12 +149,31 @@ const Orders = () => {
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case "pending": return "bg-yellow-500";
-      case "confirmed": return "bg-blue-500";
-      case "delivered": return "bg-green-500";
+      case "pending": return "bg-amber-500";
+      case "out for delivery": return "bg-blue-500";
+      case "delivered": return "bg-emerald-500";
       case "cancelled": return "bg-red-500";
-      case "out for delivery": return "bg-purple-500";
       default: return "bg-gray-500";
+    }
+  };
+
+  const getStatusBg = (status, dark) => {
+    switch (status?.toLowerCase()) {
+      case "pending": return dark ? "bg-amber-900/30 text-amber-300 border-amber-700" : "bg-amber-50 text-amber-700 border-amber-200";
+      case "out for delivery": return dark ? "bg-blue-900/30 text-blue-300 border-blue-700" : "bg-blue-50 text-blue-700 border-blue-200";
+      case "delivered": return dark ? "bg-emerald-900/30 text-emerald-300 border-emerald-700" : "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "cancelled": return dark ? "bg-red-900/30 text-red-300 border-red-700" : "bg-red-50 text-red-700 border-red-200";
+      default: return dark ? "bg-gray-700 text-gray-300 border-gray-600" : "bg-gray-100 text-gray-600 border-gray-200";
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status?.toLowerCase()) {
+      case "pending": return <Clock size={12} />;
+      case "out for delivery": return <Truck size={12} />;
+      case "delivered": return <CheckCircle size={12} />;
+      case "cancelled": return <XCircle size={12} />;
+      default: return <Package size={12} />;
     }
   };
 
@@ -142,9 +183,9 @@ const Orders = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-UG", {
+    return new Intl.NumberFormat("en-rw", {
       style: "currency",
-      currency: "UGX",
+      currency: "RWF",
       minimumFractionDigits: 0,
     }).format(amount);
   };
@@ -283,50 +324,40 @@ const Orders = () => {
 
       <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: "Total", value: stats.total, icon: ShoppingBag, color: "blue" },
-            { label: "Pending", value: stats.pending, icon: Clock, color: "yellow" },
-            { label: "Confirmed", value: stats.confirmed, icon: CheckCircle, color: "green" },
-            { label: "Out for Delivery", value: stats.outDelivery, icon: Truck, color: "orange" },
-            { label: "Delivered", value: stats.delivered, icon: Truck, color: "purple" },
-            { label: "Cancelled", value: stats.cancelled, icon: XCircle, color: "red" },
+            { label: "Total Orders", value: stats.total, icon: ShoppingBag, colorClass: darkMode ? "bg-indigo-900/40 text-indigo-300" : "bg-indigo-100 text-indigo-600", accent: "border-l-4 border-indigo-500" },
+            { label: "Pending",      value: stats.pending, icon: Clock,       colorClass: darkMode ? "bg-amber-900/40 text-amber-300" : "bg-amber-100 text-amber-600", accent: "border-l-4 border-amber-500" },
+            { label: "Out for Delivery", value: stats.outDelivery, icon: Truck, colorClass: darkMode ? "bg-blue-900/40 text-blue-300" : "bg-blue-100 text-blue-600", accent: "border-l-4 border-blue-500" },
+            { label: "Delivered",    value: stats.delivered, icon: CheckCircle, colorClass: darkMode ? "bg-emerald-900/40 text-emerald-300" : "bg-emerald-100 text-emerald-600", accent: "border-l-4 border-emerald-500" },
+            { label: "Cancelled",   value: stats.cancelled, icon: XCircle,   colorClass: darkMode ? "bg-red-900/40 text-red-300" : "bg-red-100 text-red-600", accent: "border-l-4 border-red-500" },
           ].map((stat, index) => {
             const Icon = stat.icon;
-            const colors = {
-              blue: darkMode ? "bg-blue-900/30 text-blue-400" : "bg-blue-100 text-blue-600",
-              yellow: darkMode ? "bg-yellow-900/30 text-yellow-400" : "bg-yellow-100 text-yellow-600",
-              green: darkMode ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-600",
-              orange: darkMode ? "bg-orange-900/30 text-orange-400" : "bg-orange-100 text-orange-600",
-              purple: darkMode ? "bg-purple-900/30 text-purple-400" : "bg-purple-100 text-purple-600",
-              red: darkMode ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-600",
-            };
-            
             return (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className={`p-4 rounded-xl shadow-sm ${
+                transition={{ delay: index * 0.08 }}
+                className={`p-4 rounded-xl shadow-sm ${stat.accent} ${
                   darkMode ? "bg-gray-800" : "bg-white"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className={`text-xs ${
+                    <p className={`text-xs font-medium ${
                       darkMode ? "text-gray-400" : "text-gray-500"
                     }`}>
                       {stat.label}
                     </p>
-                    <p className={`text-xl font-bold mt-1 ${
+                    <p className={`text-2xl font-extrabold mt-1 ${
                       darkMode ? "text-white" : "text-gray-900"
                     }`}>
                       {stat.value}
                     </p>
                   </div>
-                  <div className={`p-2 rounded-lg ${colors[stat.color]}`}>
-                    <Icon size={18} />
+                  <div className={`p-2.5 rounded-xl ${stat.colorClass}`}>
+                    <Icon size={20} />
                   </div>
                 </div>
               </motion.div>
@@ -354,18 +385,19 @@ const Orders = () => {
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
-            {["all", "pending", "confirmed", "delivered", "cancelled"].map((status) => (
+            {["all", "pending", "out for delivery", "delivered", "cancelled"].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                   filter === status
-                  ? "bg-indigo-600 text-white"
+                  ? "bg-indigo-600 text-white shadow"
                     : darkMode
                     ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
+                {status !== "all" && getStatusIcon(status)}
                 {status === "all" ? "All" : getStatusText(status)}
               </button>
             ))}
@@ -474,120 +506,207 @@ const Orders = () => {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.25 }}
                         className={`border-t ${
                           darkMode ? "border-gray-700" : "border-gray-100"
                         }`}
                       >
-                        <div className="p-4 space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <h4 className={`text-sm font-semibold ${darkMode ? "text-gray-300" : "text-gray-700"
-                                }`}>
-                                Customer & Delivery
-                              </h4>
-                              <div className="space-y-1">
-                                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                                  <User size={12} className="inline mr-1" /> {order.user?.email}
-                                </p>
-                                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                                  <MapPin size={12} className="inline mr-1" />
-                                  {order.deliveryAddress ?
-                                    `${order.deliveryAddress.street}, ${order.deliveryAddress.city}` :
-                                    "No address provided"}
-                                </p>
+                        <div className="p-5 space-y-5">
+
+                          {/* --- Delivery Progress Tracker --- */}
+                          {order.orderStatus !== 'Cancelled' && (
+                            <div className={`rounded-xl p-4 ${
+                              darkMode ? "bg-gray-700/50" : "bg-gray-50"
+                            }`}>
+                              <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${
+                                darkMode ? "text-gray-400" : "text-gray-500"
+                              }`}>Delivery Progress</p>
+                              <div className="relative">
+                                {/* Track bar */}
+                                <div className={`absolute top-4 left-0 w-full h-1 rounded-full ${
+                                  darkMode ? "bg-gray-600" : "bg-gray-200"
+                                }`} />
+                                <motion.div
+                                  className="absolute top-4 left-0 h-1 rounded-full bg-gradient-to-r from-amber-500 via-blue-500 to-emerald-500"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${getStepProgress(order.orderStatus)}%` }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                />
+                                <div className="relative flex justify-between">
+                                  {DELIVERY_STEPS.map((step, idx) => {
+                                    const currentIdx = getStepIndex(order.orderStatus);
+                                    const isDone = idx <= currentIdx;
+                                    const isCurrent = idx === currentIdx;
+                                    const stepColors = [
+                                      "bg-amber-500 border-amber-200 shadow-amber-200",
+                                      "bg-blue-500 border-blue-200 shadow-blue-200",
+                                      "bg-emerald-500 border-emerald-200 shadow-emerald-200",
+                                    ];
+                                    return (
+                                      <div key={step} className="flex flex-col items-center gap-2">
+                                        <motion.div
+                                          animate={isCurrent ? { scale: [1, 1.15, 1] } : {}}
+                                          transition={{ duration: 1.5, repeat: isCurrent ? Infinity : 0 }}
+                                          className={`w-8 h-8 rounded-full flex items-center justify-center z-10 border-2 shadow-md transition-all duration-500 ${
+                                            isDone
+                                              ? `${stepColors[idx]} text-white`
+                                              : darkMode
+                                              ? "bg-gray-600 border-gray-500 text-gray-400"
+                                              : "bg-white border-gray-300 text-gray-400"
+                                          }`}
+                                        >
+                                          {isDone ? <CheckCircle size={14} /> : idx + 1}
+                                        </motion.div>
+                                        <p className={`text-xs font-semibold text-center max-w-[70px] ${
+                                          isDone
+                                            ? darkMode ? "text-gray-200" : "text-gray-800"
+                                            : darkMode ? "text-gray-500" : "text-gray-400"
+                                        }`}>{step}</p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               </div>
                             </div>
-                            <div className="space-y-2">
-                              <h4 className={`text-sm font-semibold ${darkMode ? "text-gray-300" : "text-gray-700"
-                                }`}>
-                                Payment Info
-                              </h4>
-                              <div className="space-y-1">
-                                <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
-                                  <CreditCard size={12} className="inline mr-1" /> {order.paymentMethod} ({order.paymentStatus})
-                                </p>
-                                {order.isPaid && (
-                                  <p className="text-xs text-green-500 font-medium">
-                                    Paid successfully on {new Date(order.paidAt).toLocaleDateString()}
+                          )}
+
+                          {/* Cancelled banner */}
+                          {order.orderStatus === 'Cancelled' && (
+                            <div className={`rounded-xl p-4 flex items-center gap-3 ${
+                              darkMode ? "bg-red-900/20 border border-red-800" : "bg-red-50 border border-red-200"
+                            }`}>
+                              <XCircle size={20} className="text-red-500 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-bold text-red-600">Order Cancelled</p>
+                                {order.cancellationReason && (
+                                  <p className={`text-xs mt-0.5 ${ darkMode ? "text-red-400" : "text-red-500"}`}>
+                                    Reason: {order.cancellationReason}
                                   </p>
                                 )}
                               </div>
                             </div>
+                          )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <h4 className={`text-xs font-bold uppercase tracking-wider ${
+                                darkMode ? "text-gray-400" : "text-gray-500"
+                              }`}>Customer & Delivery</h4>
+                              <p className={`text-sm flex items-center gap-1.5 ${
+                                darkMode ? "text-gray-300" : "text-gray-700"
+                              }`}>
+                                <User size={13} className="opacity-60" /> {order.user?.name || order.user?.email}
+                              </p>
+                              <p className={`text-sm flex items-center gap-1.5 ${
+                                darkMode ? "text-gray-400" : "text-gray-600"
+                              }`}>
+                                <MapPin size={13} className="opacity-60 flex-shrink-0" />
+                                {order.deliveryAddress
+                                  ? `${order.deliveryAddress.street}, ${order.deliveryAddress.city}`
+                                  : "No address provided"}
+                              </p>
+                            </div>
+                            <div className="space-y-1.5">
+                              <h4 className={`text-xs font-bold uppercase tracking-wider ${
+                                darkMode ? "text-gray-400" : "text-gray-500"
+                              }`}>Payment</h4>
+                              <p className={`text-sm flex items-center gap-1.5 ${
+                                darkMode ? "text-gray-300" : "text-gray-700"
+                              }`}>
+                                <CreditCard size={13} className="opacity-60" />
+                                {order.paymentMethod} — {order.paymentStatus}
+                              </p>
+                              {order.isPaid && (
+                                <p className="text-xs text-emerald-500 font-semibold">
+                                  ✓ Paid on {new Date(order.paidAt).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
                           </div>
 
+                          {/* Items */}
                           <div>
-                            <h4 className={`text-sm font-semibold mb-2 ${
-                              darkMode ? "text-gray-300" : "text-gray-700"
-                            }`}>
-                              Items
-                            </h4>
-                            <div className="space-y-2">
+                            <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 ${
+                              darkMode ? "text-gray-400" : "text-gray-500"
+                            }`}>Order Items</h4>
+                            <div className="space-y-1">
                               {order.orderItems?.map((item, idx) => (
-                                <div key={idx} className={`flex justify-between text-sm p-2 rounded ${
+                                <div key={idx} className={`flex justify-between items-center text-sm px-3 py-2 rounded-lg ${
                                   darkMode ? "bg-gray-700" : "bg-gray-50"
                                 }`}>
-                                  <div>
-                                    <span className={darkMode ? "text-gray-300" : "text-gray-700"}>
-                                      {item.name}
-                                    </span>
-                                    <span className={`text-xs ml-2 ${
-                                      darkMode ? "text-gray-400" : "text-gray-500"
-                                    }`}>
-                                      x{item.quantity}
-                                    </span>
-                                  </div>
-                                  <span className={darkMode ? "text-gray-300" : "text-gray-700"}>
+                                  <span className={`font-medium ${ darkMode ? "text-gray-200" : "text-gray-800"}`}>
+                                    {item.name} <span className={`font-normal text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>×{item.quantity}</span>
+                                  </span>
+                                  <span className={`font-semibold ${ darkMode ? "text-gray-300" : "text-gray-700"}`}>
                                     {formatCurrency(item.price * item.quantity)}
                                   </span>
                                 </div>
                               ))}
                             </div>
+                            <div className={`flex justify-between font-bold text-sm pt-3 mt-1 border-t ${
+                              darkMode ? "border-gray-700 text-white" : "border-gray-200 text-gray-900"
+                            }`}>
+                              <span>Total</span>
+                              <span>{formatCurrency(order.totalPrice)}</span>
+                            </div>
                           </div>
 
-                          <div className={`flex justify-between text-sm font-semibold pt-2 border-t ${
-                            darkMode ? "border-gray-700" : "border-gray-200"
-                          }`}>
-                            <span className={darkMode ? "text-gray-300" : "text-gray-700"}>Total Amount</span>
-                            <span className={darkMode ? "text-white" : "text-gray-900"}>
-                              {formatCurrency(order.totalPrice)}
-                            </span>
-                          </div>
+                          {/* --- Action Buttons --- */}
+                          {order.orderStatus !== 'Delivered' && order.orderStatus !== 'Cancelled' && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {order.orderStatus === "Pending" && (
+                                <>
+                                  <motion.button
+                                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                    disabled={updatingOrder === order._id}
+                                    onClick={() => updateOrderStatus(order._id, "Out for Delivery")}
+                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition-all shadow-sm"
+                                  >
+                                    {updatingOrder === order._id ? (
+                                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <Truck size={15} />
+                                    )}
+                                    Send Out for Delivery
+                                  </motion.button>
+                                  <motion.button
+                                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                    disabled={updatingOrder === order._id}
+                                    onClick={() => updateOrderStatus(order._id, "Cancelled")}
+                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-all shadow-sm"
+                                  >
+                                    <XCircle size={15} />
+                                    Cancel Order
+                                  </motion.button>
+                                </>
+                              )}
+                              {order.orderStatus === "Out for Delivery" && (
+                                <motion.button
+                                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                  disabled={updatingOrder === order._id}
+                                  onClick={() => updateOrderStatus(order._id, "Delivered")}
+                                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 transition-all shadow-sm"
+                                >
+                                  {updatingOrder === order._id ? (
+                                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <CheckCircle size={15} />
+                                  )}
+                                  Mark as Delivered
+                                </motion.button>
+                              )}
+                            </div>
+                          )}
 
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            {order.orderStatus === "Pending" && (
-                              <>
-                                <button
-                                  onClick={() => updateOrderStatus(order._id, "Confirmed")}
-                                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                                >
-                                  Confirm Order
-                                </button>
-                                <button
-                                  onClick={() => updateOrderStatus(order._id, "Cancelled")}
-                                  className="flex-1 sm:flex-none px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            )}
-                            {order.orderStatus === "Confirmed" && (
-                              <button
-                                onClick={() => updateOrderStatus(order._id, "Out for Delivery")}
-                                className="flex-1 sm:flex-none px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors"
-                              >
-                                Out for Delivery
-                              </button>
-                            )}
-                            {order.orderStatus === "Out for Delivery" && (
-                              <button
-                                onClick={() => updateOrderStatus(order._id, "Delivered")}
-                                className="flex-1 sm:flex-none px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
-                              >
-                                Mark as Delivered
-                              </button>
-                            )}
-                          </div>
+                          {order.orderStatus === 'Delivered' && (
+                            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
+                              darkMode ? "bg-emerald-900/20 border border-emerald-800" : "bg-emerald-50 border border-emerald-200"
+                            }`}>
+                              <CheckCircle size={18} className="text-emerald-500" />
+                              <p className="text-sm font-bold text-emerald-600">Order delivered successfully ✓</p>
+                            </div>
+                          )}
+
                         </div>
                       </motion.div>
                     )}

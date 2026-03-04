@@ -9,7 +9,7 @@ import {
   EyeOff
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);

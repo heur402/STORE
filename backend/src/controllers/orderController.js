@@ -26,6 +26,9 @@ export const createOrder = async (req, res) => {
       if (!product) {
         return res.status(404).json({ message: `Product not found: ${item.name}` });
       }
+      if (item.quantity <= 0) {
+        return res.status(400).json({ message: `Invalid quantity for ${item.name}` });
+      }
       if (product.stock < item.quantity) {
         return res.status(400).json({ message: `Insufficient stock for ${item.name}` });
       }
@@ -173,14 +176,31 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // Map legacy status if needed, but primarily use orderStatus
     if (status) {
+      const isNewlyCancelled = (status === "Cancelled" || status.toLowerCase() === "cancelled") && order.orderStatus !== "Cancelled";
+      
       order.orderStatus = status;
-      order.status = status.toLowerCase(); // keep for compatibility
+      // map to legacy status field (simplified flow: Pending → Out for Delivery → Delivered)
+      const statusMapping = {
+        "Pending":          "processing",
+        "Out for Delivery": "shipped",
+        "Delivered":        "delivered",
+        "Cancelled":        "cancelled",
+        // Keep Confirmed for backwards compat with any existing orders
+        "Confirmed":        "confirmed",
+      };
+      order.status = statusMapping[status] || "processing";
       
       if (status === "Delivered") {
         order.isDelivered = true;
         order.deliveredAt = Date.now();
+      } else if (isNewlyCancelled) {
+        // Restore stock
+        for (const item of order.orderItems) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: item.quantity }
+          });
+        }
       }
     }
     
@@ -219,7 +239,17 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
+    if (order.status !== "cancelled") {
+      // Restore stock
+      for (const item of order.orderItems) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: item.quantity }
+        });
+      }
+    }
+
     order.status = "cancelled";
+    order.orderStatus = "Cancelled";
     order.cancellationReason = req.body.cancellationReason || "Cancelled by user";
 
     const updatedOrder = await order.save();

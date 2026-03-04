@@ -108,7 +108,6 @@ const orderSchema = new mongoose.Schema({
   // Legacy status field for compatibility if needed, but we use orderStatus
   status: {
     type: String,
-    enum: ["confirmed", "processing", "shipped", "delivered", "cancelled", "Pending", "Confirmed", "Out for Delivery"],
     default: "Pending",
   },
   trackingNumber: {
