@@ -203,7 +203,7 @@ const Orders = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
+    <div className={`mb-20 min-h-screen transition-colors duration-300 ${
       darkMode ? "bg-gray-900" : "bg-gray-50"
     }`}>
       {/* Header with Notifications */}

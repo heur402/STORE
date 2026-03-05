@@ -146,7 +146,7 @@ const testAPI = async () => {
       console.log(`❌ Failed: ${filteredData.message}\n`);
     }
 
-    console.log("🎉 All tests completed!");
+    console.log("  All tests completed!");
     console.log("\n📝 Next Steps:");
     console.log("1. Start your frontend applications");
     console.log("2. Login with the test user or create a new account");

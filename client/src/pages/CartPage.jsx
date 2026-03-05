@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { orderAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { ShoppingCart } from 'lucide-react';
 
 const CartPage = () => {
   const { cartItems, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
@@ -127,7 +128,7 @@ const CartPage = () => {
                   transition={{ duration: 2, repeat: Infinity }}
                   className="mr-3"
                 >
-                  🛒
+                  <ShoppingCart />
                 </motion.span>
                 Shopping Cart
               </motion.h1>
@@ -247,7 +248,7 @@ const CartPage = () => {
                                 className="text-2xl font-bold text-gray-800"
                                 whileHover={{ scale: 1.05 }}
                               >
-                                ${(item.price * item.quantity).toFixed(2)}
+                                <span className='text-xs'>RW </span>{((item.discountPrice || item.price) * item.quantity).toFixed(2)}
                               </motion.p>
                             </div>
 
@@ -354,12 +355,12 @@ const CartPage = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({cartItems.length} items)</span>
-                  <span>RWF {subtotal.toLocaleString()}</span>
+                  <span><span className='text-xs'>RWF</span> {subtotal.toLocaleString()}</span>
                 </div>
 
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>{shippingCost === 0 ? 'Free' : `RWF ${shippingCost.toLocaleString()}`}</span>
+                  <span>{shippingCost === 0 ? 'Free' : ((<span className='text-xs'>RWF</span>) `${shippingCost.toLocaleString()}`)}</span>
                 </div>
 
                 {promoApplied && (
@@ -384,7 +385,7 @@ const CartPage = () => {
                       animate={{ scale: 1 }}
                       className="text-orange-600"
                     >
-                      RWF {total.toLocaleString()}
+                      <span className='text-xs'>RWF</span> {total.toLocaleString()}
                     </motion.span>
                   </div>
                 </div>
@@ -399,7 +400,7 @@ const CartPage = () => {
                     type="text"
                     value={deliveryAddress.street}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, street: e.target.value })}
-                    placeholder="e.g. Plot 12, Kampala Rd"
+                    placeholder="e.g. KG 778 st, KK 45 Rd"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                 </div>
@@ -409,7 +410,7 @@ const CartPage = () => {
                     type="text"
                     value={deliveryAddress.city}
                     onChange={(e) => setDeliveryAddress({ ...deliveryAddress, city: e.target.value })}
-                    placeholder="e.g. Kampala"
+                    placeholder="e.g. Kigali, Musanze"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                 </div>
@@ -467,47 +468,9 @@ const CartPage = () => {
 
               {/* Secure Checkout Note */}
               <p className="text-xs text-center text-gray-500">
-                🔒 Secure payment via {paymentMethod} Mobile Money
+                Secure payment via {paymentMethod} Mobile Money
               </p>
             </div>
-
-            {/* Recommended Products */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="bg-white rounded-xl shadow-sm p-6 mt-4"
-            >
-              <h3 className="font-semibold text-gray-800 mb-4">You might also like</h3>
-              <div className="space-y-3">
-                {[
-                  { name: 'Portable Power Bank', image: '🔋', price: 49.99 },
-                  { name: 'Bluetooth Speaker', image: '🔊', price: 89.99 },
-                  { name: 'Laptop Sleeve', image: '💼', price: 34.99 }
-                ].map((product, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ x: 5 }}
-                    className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{product.image}</span>
-                      <div>
-                        <p className="font-medium text-gray-800">{product.name}</p>
-                        <p className="text-sm text-blue-600">${product.price}</p>
-                      </div>
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="text-blue-600"
-                    >
-                      +
-                    </motion.button>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
           </motion.div>
         </div>
       </div>

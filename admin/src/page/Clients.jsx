@@ -105,7 +105,7 @@ const Clients = () => {
   };
 
   return (
-    <div className={`p-4 sm:p-6 min-h-screen transition-colors duration-300 ${darkMode ? "bg-gray-900" : "bg-gray-50"
+    <div className={`p-4 sm:p-6 min-h-screen mb-20 transition-colors duration-300 ${darkMode ? "bg-gray-900" : "bg-gray-50"
       }`}>
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">

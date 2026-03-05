@@ -153,8 +153,8 @@ const Filters = ({
                       className="w-full accent-orange-500"
                     />
                     <div className="flex justify-between text-sm text-gray-600">
-                      <span>${priceRange.min}</span>
-                      <span>${priceRange.max}</span>
+                      <span><span className='text-sm'>FRW </span>{priceRange.min}</span>
+                      <span><span className='text-xs'>FRW </span>{priceRange.max}</span>
                     </div>
                   </div>
                 </div>

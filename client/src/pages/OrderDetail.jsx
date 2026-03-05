@@ -279,7 +279,7 @@ const OrderDetail = () => {
                           try {
                             const updatedOrder = await orderAPI.deliver(order._id);
                             setOrder(updatedOrder);
-                            alert("Thank you for confirming receipt! 🎉");
+                            alert("Thank you for confirming receipt!  ");
                           } catch (err) {
                             alert(err.message || "Failed to confirm delivery");
                           } finally {

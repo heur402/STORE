@@ -162,15 +162,15 @@ const ProductDetail = () => {
             {/* Price */}
             <div className="flex items-baseline space-x-4">
               <span className="text-4xl font-bold text-orange-600">
-                RWF {product.price.toLocaleString()}
+                RWF {(product.discountPrice || product.price).toLocaleString()}
               </span>
               {product.discountPrice > 0 && (
                 <>
                   <span className="text-xl text-gray-400 line-through">
-                    RWF {(product.price + product.discountPrice).toLocaleString()}
+                    RWF {(product.price).toLocaleString()}
                   </span>
                   <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-semibold">
-                    Save RWF {product.discountPrice.toLocaleString()}
+                    Save RWF {(product.price - product.discountPrice).toLocaleString()}
                   </span>
                 </>
               )}
@@ -217,7 +217,7 @@ const ProductDetail = () => {
                   <Plus className="h-5 w-5" />
                 </button>
                 <span className="text-gray-500">
-                  Total: RWF {(product.price * quantity).toLocaleString()}
+                  Total: RWF {((product.discountPrice || product.price) * quantity).toLocaleString()}
                 </span>
               </div>
             </div>

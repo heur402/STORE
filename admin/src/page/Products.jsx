@@ -90,7 +90,7 @@ const Products = () => {
             variants={container}
             initial="hidden"
             animate="show"
-            className={`p-4 sm:p-6 w-full h-full overflow-auto scrollbar-none transition-colors duration-300 space-y-4 sm:space-y-6
+            className={`mb-20 p-4 sm:p-6 w-full h-full overflow-auto scrollbar-none transition-colors duration-300 space-y-4 sm:space-y-6
                 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
         >
             {/* StatsGrid uses real data from database */}

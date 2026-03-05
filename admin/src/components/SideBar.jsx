@@ -19,8 +19,6 @@ import {
 
 const navSections = [
   {
-    title: "Main",
-    icon: LayoutDashboard,
     items: [
       { name: "Dashboard", path: "/", icon: LayoutDashboard },
       { name: "Products", path: "/products", icon: Package },
@@ -197,8 +195,8 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
             onClick={toggleDarkMode}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-3 p-3 rounded-lg w-full transition ${collapsed ? "justify-center" : ""
-              } ${darkMode ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-700"
+            className={`flex items-center gap-3 p-3 rounded-lg w-full transition ${collapsed ? "justify-center" : "pl-1"}
+             ${darkMode ? "hover:bg-gray-800 text-gray-300" : "hover:bg-gray-100 text-gray-700"
               }`}
           >
             {darkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-700" />}
@@ -224,9 +222,10 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
             onClick={handleLogout}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 p-2 rounded-lg w-full text-sm transition hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+            className={`flex items-center gap-2  p-2 rounded-lg w-full text-sm ${collapsed ? 'justify-center' : ''}
+             transition hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400`}
           >
-            <LogOut size={16} /> Logout
+            <LogOut size={16} />  <span className={`${collapsed ? 'hidden' : 'block' }`}>Logout</span>
           </motion.button>
         </div>
       </motion.div>
@@ -239,7 +238,7 @@ const Sidebar = ({ darkMode, toggleDarkMode }) => {
           animate={{ y: 0 }}
           exit={{ y: 100 }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
-          className={`fixed bottom-0 left-0 right-0 sm:hidden z-50 flex justify-around items-center border-t ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
+          className={`fixed  bottom-0 left-0 right-0 sm:hidden z-50 flex justify-around items-center border-t ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
             } shadow-lg px-2`}
         >
           {navSections.flatMap(section => section.items).map((item, index) => {

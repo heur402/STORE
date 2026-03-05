@@ -58,7 +58,7 @@ const AllProduct = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`min-h-screen transition-colors duration-300 ${
+      className={`min-h-screen transition-colors duration-300 mb-20 ${
         darkMode 
           ? "bg-gray-900" 
           : "bg-gradient-to-br from-gray-50 to-gray-100"

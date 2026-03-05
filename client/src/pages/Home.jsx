@@ -1,12 +1,12 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Clock,
-  DollarSign,
-  Shield,
-  HeadphonesIcon,
-  Flame,
-  Coffee,
+import { 
+  Clock, 
+  DollarSign, 
+  Shield, 
+  HeadphonesIcon, 
+  Flame, 
+  Coffee, 
   Beer,
   Truck,
   Star,
@@ -83,25 +83,25 @@ const HERO_STATS = [
 ];
 
 const CATEGORIES = [
-  {
-    icon: Flame,
-    title: 'Gas Delivery',
+  { 
+    icon: Flame, 
+    title: 'Gas Delivery', 
     description: 'Premium gas at your doorstep',
     features: ['Quality Guaranteed', 'Fast Service', 'Best Prices'],
     color: COLORS.secondary,
     emoji: '⛽'
   },
-  {
-    icon: Coffee,
-    title: 'Food & Snacks',
+  { 
+    icon: Coffee, 
+    title: 'Food & Snacks', 
     description: 'Fresh meals & quick bites',
     features: ['Hot & Fresh', 'Variety Options', 'Dietary Choices'],
     color: { from: 'from-orange-500', to: 'to-red-500' },
     emoji: '🍔'
   },
-  {
-    icon: Beer,
-    title: 'Beverages',
+  { 
+    icon: Beer, 
+    title: 'Beverages', 
     description: 'Refreshing drinks collection',
     features: ['Cold Drinks', 'Energy Drinks', 'Fresh Juices'],
     color: COLORS.success,
@@ -110,39 +110,39 @@ const CATEGORIES = [
 ];
 
 const DEALS = [
-  { emoji: '🍔', title: 'Combo Meal', discount: 'Save 25%', color: 'from-orange-500 to-red-500', price: 'RWF 12,900' },
-  { emoji: '🥤', title: 'Cold Drinks', discount: 'Buy 2 Get 1', color: 'from-blue-500 to-cyan-500', price: 'From RWF 2,900' },
+  { emoji: '🍔', title: 'Combo Meal', discount: 'Save 25%', color: 'from-orange-500 to-red-500', price: '$12.99' },
+  { emoji: '🥤', title: 'Cold Drinks', discount: 'Buy 2 Get 1', color: 'from-blue-500 to-cyan-500', price: 'From $2.99' },
   { emoji: '🔥', title: 'Gas', discount: 'Best Prices', color: 'from-purple-500 to-pink-500', price: 'Best Rate' },
-  { emoji: '🍕', title: 'Pizza Deal', discount: 'Free Delivery', color: 'from-yellow-500 to-orange-500', price: 'RWF 15,900' },
-  { emoji: '🥗', title: 'Healthy Bowls', discount: '20% OFF', color: 'from-green-500 to-emerald-500', price: 'RWF 9,900' },
-  { emoji: '🧋', title: 'Specialty Drinks', discount: 'Happy Hour', color: 'from-indigo-500 to-purple-500', price: 'From RWF 3,900' }
+  { emoji: '🍕', title: 'Pizza Deal', discount: 'Free Delivery', color: 'from-yellow-500 to-orange-500', price: '$15.99' },
+  { emoji: '🥗', title: 'Healthy Bowls', discount: '20% OFF', color: 'from-green-500 to-emerald-500', price: '$9.99' },
+  { emoji: '🧋', title: 'Specialty Drinks', discount: 'Happy Hour', color: 'from-indigo-500 to-purple-500', price: 'From $3.99' }
 ];
 
 const FEATURES = [
-  {
-    icon: Zap,
-    title: 'Lightning Fast',
+  { 
+    icon: Zap, 
+    title: 'Lightning Fast', 
     description: 'Delivery under 30 minutes',
     color: COLORS.primary,
     stat: '< 30 min'
   },
-  {
-    icon: Shield,
-    title: 'Secure Payment',
+  { 
+    icon: Shield, 
+    title: 'Secure Payment', 
     description: '100% secure transactions',
     color: COLORS.success,
     stat: 'SSL Secure'
   },
-  {
-    icon: Award,
-    title: 'Quality Assured',
+  { 
+    icon: Award, 
+    title: 'Quality Assured', 
     description: 'Premium products only',
     color: { from: 'from-purple-500', to: 'to-pink-500' },
     stat: '100% Fresh'
   },
-  {
-    icon: HeadphonesIcon,
-    title: '24/7 Support',
+  { 
+    icon: HeadphonesIcon, 
+    title: '24/7 Support', 
     description: 'Always here to help',
     color: { from: 'from-blue-500', to: 'to-indigo-500' },
     stat: 'Live Chat'
@@ -212,7 +212,7 @@ const CategoryCard = memo(({ category, index }) => (
         whileHover={{ x: 5 }}
         className="mt-6 text-orange-600 font-semibold flex items-center group"
       >
-        Learn More
+        Learn More 
         <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
       </motion.button>
     </div>
@@ -286,7 +286,7 @@ const Home = () => {
   }, []);
 
   const backgroundPattern = useMemo(() => (
-    <div
+    <div 
       className="absolute inset-0 opacity-20"
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -300,12 +300,12 @@ const Home = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700">
         {backgroundPattern}
-
+        
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse delay-1000" />
-
+          
           {/* Floating Elements */}
           {[...Array(5)].map((_, i) => (
             <motion.div
@@ -335,40 +335,38 @@ const Home = () => {
             animate="animate"
           >
             <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-sm font-semibold mb-6 backdrop-blur-sm">
-              🚀 Fast Delivery • 24/7 Service
+              Fast Delivery • 24/7 Service
             </span>
-
+            
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
               Food & Drinks, Gas
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-white">
                 Delivered in Minutes!
               </span>
             </h1>
-
+            
             <p className="text-xl md:text-2xl mb-8 text-orange-100 max-w-3xl mx-auto">
               Your one-stop shop for premium gas, delicious food, and refreshing beverages
             </p>
-
+            
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <NavLink to="/products">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="group bg-white text-orange-600 px-10 py-4 rounded-full font-bold text-lg shadow-2xl hover:shadow-orange-300/50 transition-all flex items-center justify-center space-x-4"
-                >
-                  <span>Order Now</span>
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </motion.button>
-              </NavLink>
-              <NavLink to="/products">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-orange-600 transition-all backdrop-blur-sm"
-                >
-                  View Menu
-                </motion.button>
-              </NavLink>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="group bg-white text-orange-600 px-10 py-4 rounded-full font-bold text-lg shadow-2xl hover:shadow-orange-300/50 transition-all flex items-center justify-center space-x-4"
+              >
+                <NavLink to="/products"><span>Order Now</span></NavLink>
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-orange-600 transition-all backdrop-blur-sm"
+              >
+                <NavLink to="/products">View Menu</NavLink>
+                
+              </motion.button>
             </div>
 
             {/* Stats Grid */}
@@ -402,8 +400,8 @@ const Home = () => {
       {/* Categories Section */}
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
-          <SectionTitle
-            title="What Would You Like?"
+          <SectionTitle 
+            title="What Would You Like?" 
             subtitle="Choose from our premium selection of products delivered straight to your doorstep"
           />
 
@@ -424,7 +422,7 @@ const Home = () => {
       {/* Deals Section */}
       <section className="py-24 bg-gradient-to-b from-gray-50 to-white">
         <div className="container mx-auto px-4">
-          <SectionTitle
+          <SectionTitle 
             title="Featured Products"
             subtitle="Explore our top-rated selection of fresh products"
           />
@@ -467,8 +465,8 @@ const Home = () => {
       {/* Features Section */}
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
-          <SectionTitle
-            title="Why Choose Us?"
+          <SectionTitle 
+            title="Why Choose Us?" 
             subtitle="Experience the difference with our premium service"
           />
 
@@ -489,8 +487,8 @@ const Home = () => {
       {/* Testimonial Preview */}
       <section className="py-24 bg-gradient-to-b from-white to-gray-50">
         <div className="container mx-auto px-4">
-          <SectionTitle
-            title="What Our Customers Say"
+          <SectionTitle 
+            title="What Our Customers Say" 
             subtitle="Join thousands of satisfied customers"
           />
 
@@ -504,7 +502,7 @@ const Home = () => {
               <div className="absolute -top-4 left-8 text-6xl text-orange-500 opacity-20">"</div>
               <div className="relative">
                 <p className="text-xl md:text-2xl text-gray-700 mb-6">
-                  "The fastest delivery service I've ever used! Got my gas and snacks within 15 minutes.
+                  "The fastest delivery service I've ever used! Got my gas and snacks within 15 minutes. 
                   The app is super easy to use and the customer support is amazing."
                 </p>
                 <div className="flex items-center">
@@ -542,17 +540,17 @@ const Home = () => {
             viewport={{ once: true }}
           >
             <span className="inline-block px-4 py-2 bg-white/20 rounded-full text-white text-sm font-semibold mb-6 backdrop-blur-sm">
-              🎉 Special Offer
+               Special Offer
             </span>
-
+            
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Ready to Get Started?
             </h2>
-
+            
             <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
-              Download our app now and get <span className="font-bold">RWF 10,000 off</span> your first order!
+              Download our app now and get <span className="font-bold">$10 off</span> your first order!
             </p>
-
+            
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -562,7 +560,7 @@ const Home = () => {
                 <Smartphone className="h-5 w-5" />
                 <span>App Store</span>
               </motion.button>
-
+              
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
