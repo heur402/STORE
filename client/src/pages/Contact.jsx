@@ -1,16 +1,13 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Mail, Phone, Clock, Send, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
 import emailjs from '@emailjs/browser';
-
-// Initialize EmailJS with your public key
-// You can also do this in a separate file or useEffect
-emailjs.init(process.env.REACT_APP_EMAILJS_PUBLIC_KEY);
 
 const Contact = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        phone: '', // Added phone field
         subject: '',
         message: ''
     });
@@ -25,7 +22,13 @@ const Contact = () => {
     const [expandedFaq, setExpandedFaq] = useState(null);
     
     const mapRef = useRef(null);
-    const formRef = useRef(null); // Add ref for the form
+    const formRef = useRef(null);
+
+    // Initialize EmailJS when component mounts
+    useEffect(() => {
+        // Initialize EmailJS with your public key
+        emailjs.init("w7YbdncOPw-gQ8NBb");
+    }, []);
 
     // Memoized scroll function
     const scrollToMap = useCallback((e) => {
@@ -120,18 +123,21 @@ const Contact = () => {
         });
 
         try {
-            // EmailJS configuration - Replace these with your actual credentials
-            const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID;
-            const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID;
+            // EmailJS configuration - using hardcoded values
+            const serviceId = "service_thpcdsq";
+            const templateId = "template_glicend";
             
             // Prepare template parameters
             const templateParams = {
                 from_name: formData.name,
                 from_email: formData.email,
+                phone: formData.phone || 'Not provided', // Use the phone from form or fallback
                 subject: formData.subject,
                 message: formData.message,
-                to_email: 'byiringirobon01fra@gmail.com', // Your email
+                to_email: 'byiringirobon01fra@gmail.com',
                 reply_to: formData.email,
+                time: new Date().toLocaleString(),
+                year: new Date().getFullYear()
             };
 
             // Send email using EmailJS
@@ -139,7 +145,6 @@ const Contact = () => {
                 serviceId,
                 templateId,
                 templateParams
-                // No need for public key here if initialized globally
             );
 
             console.log('Email sent successfully:', response);
@@ -161,6 +166,7 @@ const Contact = () => {
                 setFormData({
                     name: '',
                     email: '',
+                    phone: '', // Reset phone field
                     subject: '',
                     message: ''
                 });
@@ -195,14 +201,6 @@ const Contact = () => {
             transition: {
                 staggerChildren: 0.1
             }
-        }
-    };
-
-    const cardHover = {
-        rest: { scale: 1 },
-        hover: { 
-            scale: 1.03,
-            transition: { type: "spring", stiffness: 400, damping: 17 }
         }
     };
 
@@ -330,6 +328,25 @@ const Contact = () => {
                                         disabled={formStatus.submitted && formStatus.message.includes('Sending')}
                                     />
                                 </div>
+                            </div>
+
+                            {/* Phone Input Field - New */}
+                            <div>
+                                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Phone Number
+                                </label>
+                                <input
+                                    type="tel"
+                                    id="phone"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleInputChange}
+                                    onFocus={() => setActiveField('phone')}
+                                    onBlur={() => setActiveField(null)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    placeholder="+250 123 456 789"
+                                    disabled={formStatus.submitted && formStatus.message.includes('Sending')}
+                                />
                             </div>
 
                             <div>
