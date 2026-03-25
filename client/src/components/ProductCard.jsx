@@ -99,7 +99,7 @@ const ProductCard = ({ product }) => {
         {product.images && product.images.length > 0 ? (
           <motion.img
             animate={{ scale: isHovered ? 1.1 : 1 }}
-            src={product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`}
+            src={product.images[0]}
             alt={product.name}
             className="w-full h-full object-cover"
           />

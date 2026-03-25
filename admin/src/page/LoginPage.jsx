@@ -124,7 +124,7 @@ const LoginPage = () => {
         className="w-full max-w-md text-center bg-white/5 border border-white/10 rounded-2xl px-8 py-10 backdrop-blur-xl shadow-xl"
       >
         <h1 className="text-white text-3xl font-semibold">
-          {state === "login" ? "Admin Login" : "Admin Sign Up"}
+          {state === "login" ? "Store's Admin" : "Admin Sign Up"}
         </h1>
 
         <p className="text-gray-400 text-sm mt-2">

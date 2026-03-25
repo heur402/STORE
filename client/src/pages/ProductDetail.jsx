@@ -261,7 +261,7 @@ const ProductDetail = () => {
             <div className={`bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl aspect-square flex items-center justify-center overflow-hidden border-4 border-white shadow-xl`}>
               {product.images && product.images.length > 0 ? (
                 <img
-                  src={product.images[selectedImage]?.startsWith('http') ? product.images[selectedImage] : `http://localhost:5000${product.images[selectedImage]}`}
+                  src={product.images[0]}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />

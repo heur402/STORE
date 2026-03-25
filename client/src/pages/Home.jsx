@@ -364,7 +364,7 @@ const Home = () => {
                 whileTap={{ scale: 0.95 }}
                 className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-orange-600 transition-all backdrop-blur-sm"
               >
-                <NavLink to="/products">View Menu</NavLink>
+                <NavLink to="/products">View Stock</NavLink>
                 
               </motion.button>
             </div>
