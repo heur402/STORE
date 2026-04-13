@@ -119,14 +119,6 @@ const ProductCard = ({ product, onEdit, onDelete, darkMode }) => {
 
           {/* DESCRIPTION BUTTON */}
           <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${darkMode ? "bg-gray-700/50" : "bg-gray-100"
-              }`}>
-              <span className="text-sm">❤️</span>
-              <span className={`text-xs font-bold ${darkMode ? "text-gray-300" : "text-gray-700"
-                }`}>
-                {product.likes?.length || 0}
-              </span>
-            </div>
             <button
               onClick={() => setShowDesc(!showDesc)}
               className={`p-2 rounded-full transition-colors ${darkMode

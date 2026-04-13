@@ -24,8 +24,6 @@ const ProductTable = () => {
     updated.sort((a, b) => {
       if (sortType === "latest") return new Date(b.createdAt) - new Date(a.createdAt);
       if (sortType === "oldest") return new Date(a.createdAt) - new Date(b.createdAt);
-      if (sortType === "mostLiked") return (b.likes?.length || 0) - (a.likes?.length || 0);
-      if (sortType === "leastLiked") return (a.likes?.length || 0) - (b.likes?.length || 0);
       return 0;
     });
     return updated;
@@ -54,8 +52,6 @@ const ProductTable = () => {
           >
             <option value="latest">Latest</option>
             <option value="oldest">Oldest</option>
-            <option value="mostLiked">Most Liked ❤️</option>
-            <option value="leastLiked">Least Liked</option>
           </select>
 
           <select

@@ -1,16 +1,16 @@
+// ProductDetail.jsx with integrated loader
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ShoppingCart,
-  Heart,
-  Star,
   Truck,
   Shield,
   RotateCcw,
   Minus,
   Plus,
-  ChevronRight
+  ChevronRight,
+  Package
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -23,7 +23,6 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
   const { addToCart } = useCart();
   const { user } = useAuth();
 
@@ -33,9 +32,6 @@ const ProductDetail = () => {
       try {
         const data = await productAPI.getById(id);
         setProduct(data);
-        if (user && data.likes) {
-          setIsLiked(data.likes.includes(user._id));
-        }
         setError(null);
       } catch (err) {
         setError("Product not found");
@@ -49,8 +45,6 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-
-
   const incrementQuantity = () => setQuantity(prev => {
     if (prev >= (product?.stock || 0)) {
       alert("Maximum available stock reached");
@@ -60,176 +54,183 @@ const ProductDetail = () => {
   });
   const decrementQuantity = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
 
-  const handleToggleLike = async () => {
-    if (!user) {
-      alert("Please login to like products");
-      return;
-    }
-
-    // Optimistic UI update
-    setIsLiked(!isLiked);
-    try {
-      await productAPI.toggleLike(product._id);
-    } catch (error) {
-      // Revert if failed
-      setIsLiked(isLiked);
-      console.error("Failed to toggle like:", error);
-    }
+  // Shimmer animation for skeleton loader
+  const shimmerAnimation = {
+    initial: { backgroundPosition: '-200% 0' },
+    animate: {
+      backgroundPosition: '200% 0',
+      transition: {
+        repeat: Infinity,
+        duration: 1.5,
+        ease: 'linear',
+      },
+    },
   };
+
+  // Skeleton block component
+  const SkeletonBlock = ({ className = "", height = "h-4" }) => (
+    <div className={`relative overflow-hidden bg-gray-200 rounded ${height} ${className}`}>
+      <motion.div
+        variants={shimmerAnimation}
+        initial="initial"
+        animate="animate"
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
+          backgroundSize: '200% 100%',
+        }}
+      />
+    </div>
+  );
 
   if (loading)
     return (
       <div className="pt-20 min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
-          {/* Breadcrumb */}
+          {/* Breadcrumb Skeleton */}
           <div className="flex items-center space-x-2 text-sm text-gray-500 mb-8">
             <Link to="/" className="hover:text-orange-500">Home</Link>
             <ChevronRight className="h-4 w-4" />
             <Link to="/products" className="hover:text-orange-500">Products</Link>
             <ChevronRight className="h-4 w-4" />
-            <span className="text-gray-900 font-medium">name</span>
+            <SkeletonBlock className="w-24" height="h-4" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Product Images */}
+            {/* Product Images Skeleton */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="space-y-4"
             >
-              <div
-                className={`bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl aspect-square flex 
-                  items-center justify-center overflow-hidden border-4 border-white shadow-xl`}
-              >Product Image</div>
+              <div className="bg-gradient-to-br from-orange-200 to-orange-400 rounded-3xl aspect-square flex items-center justify-center overflow-hidden border-4 border-white shadow-xl">
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.05, 1],
+                    opacity: [0.5, 0.8, 0.5]
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 2,
+                    ease: 'easeInOut',
+                  }}
+                  className="text-center"
+                >
+                  <Package className="h-20 w-20 text-white/60 mx-auto mb-3" />
+                  <div className="w-40 h-3 bg-white/40 rounded-full"></div>
+                </motion.div>
+              </div>
+              
+              {/* Thumbnail Skeletons */}
+              <div className="grid grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <SkeletonBlock 
+                    key={i} 
+                    className="rounded-xl aspect-square" 
+                    height="h-full" 
+                  />
+                ))}
+              </div>
             </motion.div>
 
-            {/* Product Info */}
+            {/* Product Info Skeleton */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="space-y-6"
             >
-              {/* Category & Rating */}
+              {/* Category Skeleton */}
               <div className="flex items-center justify-between">
-                <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-semibold">
-                    type
-                </span>
-                <div className="flex items-center">
-                  <div className="flex items-center">
-                    <Star /><Star /><Star /><Star /><Star />
-                  </div>
-                  <span className="ml-2 text-gray-600">
+                <SkeletonBlock className="w-24" height="h-8 rounded-full" />
+              </div>
 
-                  </span>
+              {/* Title Skeleton */}
+              <div className="space-y-2">
+                <SkeletonBlock className="w-3/4" height="h-10 rounded-lg" />
+                <SkeletonBlock className="w-1/2" height="h-8 rounded-lg" />
+              </div>
+
+              {/* Price Skeleton */}
+              <div className="flex items-baseline space-x-4">
+                <SkeletonBlock className="w-32" height="h-10 rounded-lg" />
+                <SkeletonBlock className="w-24" height="h-7 rounded-lg" />
+              </div>
+
+              {/* Description Skeleton */}
+              <div>
+                <SkeletonBlock className="w-28 mb-2" height="h-6" />
+                <div className="space-y-2">
+                  <SkeletonBlock className="w-full" height="h-4" />
+                  <SkeletonBlock className="w-full" height="h-4" />
+                  <SkeletonBlock className="w-2/3" height="h-4" />
                 </div>
               </div>
 
-              {/* Title */}
-              <h1 className="text-4xl font-bold">Title</h1>
-
-              {/* Price */}
-              <div className="flex items-baseline space-x-4">
-                <span className="text-4xl font-bold text-orange-600">
-                  RWF
-                </span>
-              </div>
-
-              {/* Description */}
+              {/* Features Skeleton */}
               <div>
-                <h3 className="font-semibold text-lg mb-2">Description</h3>
-                <p className="text-gray-600 leading-relaxed"></p>
-              </div>
-
-              {/* Features */}
-              <div>
-                <h3 className="font-semibold text-lg mb-2">Key Features</h3>
+                <SkeletonBlock className="w-36 mb-2" height="h-6" />
                 <ul className="space-y-2">
-                  <span className="text-orange-500 mt-1">•</span>
-                  <span className="text-gray-600">feature</span>
+                  {[1, 2, 3].map((i) => (
+                    <li key={i} className="flex items-start space-x-2">
+                      <span className="text-orange-500 mt-1">•</span>
+                      <SkeletonBlock className="w-48" height="h-4" />
+                    </li>
+                  ))}
                 </ul>
               </div>
 
-              {/* Quantity */}
+              {/* Quantity Skeleton */}
               <div>
-                <h3 className="font-semibold text-lg mb-2">Quantity</h3>
+                <SkeletonBlock className="w-24 mb-2" height="h-6" />
                 <div className="flex items-center space-x-4">
-                  <button
-                    onClick={decrementQuantity}
-                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <Minus className="h-5 w-5" />
-                  </button>
-                  <span className="text-xl font-semibold w-12 text-center">
-
-                  </span>
-                  <button
-                    onClick={incrementQuantity}
-                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                  <span className="text-gray-500">
-                    Total: RWF
-                  </span>
+                  <SkeletonBlock className="w-10" height="h-10 rounded-lg" />
+                  <SkeletonBlock className="w-12" height="h-8" />
+                  <SkeletonBlock className="w-10" height="h-10 rounded-lg" />
+                  <SkeletonBlock className="w-32" height="h-5" />
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Actions Skeleton */}
               <div className="flex space-x-4 pt-4">
-                <button
-                  onClick={() => addToCart({ ...product, quantity })}
-                  className="flex-1 bg-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-all flex items-center justify-center space-x-2"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  <span>Add to Cart</span>
-                </button>
-                <button
-                  onClick={handleToggleLike}
-                  className="p-4 border-2 border-gray-300 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-colors"
-                >
-                  <Heart className={`h-5 w-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                </button>
+                <div className="flex-1 relative overflow-hidden bg-gradient-to-r from-orange-400 to-orange-500 rounded-xl h-14">
+                  <motion.div
+                    variants={shimmerAnimation}
+                    initial="initial"
+                    animate="animate"
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                      backgroundSize: '200% 100%',
+                    }}
+                  />
+                  <div className="flex items-center justify-center space-x-2 h-full">
+                    <div className="h-5 w-5 bg-white/30 rounded"></div>
+                    <div className="h-5 w-24 bg-white/30 rounded"></div>
+                  </div>
+                </div>
               </div>
 
-              {/* Shipping Info */}
+              {/* Shipping Info Skeleton */}
               <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-200">
-                <div className="text-center">
-                  <Truck className="h-6 w-6 text-orange-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium">Free Delivery</p>
-                  <p className="text-xs text-gray-500">On orders over RWF 50,000</p>
-                </div>
-                <div className="text-center">
-                  <Shield className="h-6 w-6 text-orange-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium">Secure Payment</p>
-                  <p className="text-xs text-gray-500">100% protected</p>
-                </div>
-                <div className="text-center">
-                  <RotateCcw className="h-6 w-6 text-orange-500 mx-auto mb-2" />
-                  <p className="text-sm font-medium">Easy Returns</p>
-                  <p className="text-xs text-gray-500">30 days return</p>
-                </div>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="text-center space-y-2">
+                    <div className="h-6 w-6 bg-orange-200 rounded-full mx-auto"></div>
+                    <SkeletonBlock className="w-20 mx-auto" height="h-4" />
+                    <SkeletonBlock className="w-24 mx-auto" height="h-3" />
+                  </div>
+                ))}
               </div>
 
-              {/* Specifications */}
+              {/* Specifications Skeleton */}
               <div className="pt-6">
-                <h3 className="font-semibold text-lg mb-4">Specifications</h3>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="flex py-2 border-b border-gray-200">
-                    <span className="w-1/3 text-gray-600">Cylinder Size</span>
-                    <span className="w-2/3 font-medium"> size </span>
-                  </div>
-                  <div className="flex py-2 border-b border-gray-200">
-                    <span className="w-1/3 text-gray-600">Type</span>
-                    <span className="w-2/3 font-medium"> type </span>
-                  </div>
-                  <div className="flex py-2 border-b border-gray-200">
-                    <span className="w-1/3 text-gray-600">Availability</span>
-                    <span className="w-2/3 font-medium"> availability </span>
-                  </div>
-                  <div className="flex py-2 border-b border-gray-200 last:border-0">
-                    <span className="w-1/3 text-gray-600">key</span>
-                    <span className="w-2/3 font-medium">value</span>
-                  </div>
+                <SkeletonBlock className="w-36 mb-4" height="h-6" />
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex py-2 border-b border-gray-200 last:border-0">
+                      <SkeletonBlock className="w-1/3" height="h-4" />
+                      <SkeletonBlock className="w-2/3" height="h-4" />
+                    </div>
+                  ))}
                 </div>
               </div>
             </motion.div>
@@ -237,6 +238,7 @@ const ProductDetail = () => {
         </div>
       </div>
     );
+
   if (error || !product) return <div className="pt-40 text-center text-xl text-red-500">{error || "Product not found"}</div>;
 
   return (
@@ -295,27 +297,11 @@ const ProductDetail = () => {
             animate={{ opacity: 1, x: 0 }}
             className="space-y-6"
           >
-            {/* Category & Rating */}
+            {/* Category */}
             <div className="flex items-center justify-between">
               <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-semibold">
                 {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
               </span>
-              <div className="flex items-center">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-5 w-5 ${i < Math.floor(product.rating)
-                        ? 'text-yellow-400 fill-current'
-                        : 'text-gray-300'
-                        }`}
-                    />
-                  ))}
-                </div>
-                <span className="ml-2 text-gray-600">
-                  {product.rating} ({product.reviewsCount || 0} reviews)
-                </span>
-              </div>
             </div>
 
             {/* Title */}
@@ -392,12 +378,6 @@ const ProductDetail = () => {
               >
                 <ShoppingCart className="h-5 w-5" />
                 <span>Add to Cart</span>
-              </button>
-              <button
-                onClick={handleToggleLike}
-                className="p-4 border-2 border-gray-300 rounded-xl hover:border-orange-500 hover:text-orange-500 transition-colors"
-              >
-                <Heart className={`h-5 w-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
               </button>
             </div>
 
