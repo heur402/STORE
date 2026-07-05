@@ -11,6 +11,7 @@ import ProductDetail from "./pages/ProductDetail";
 import CartPage from "./pages/CartPage";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import OrderTracking from "./pages/OrderTracking";
 import NotFound from "./pages/NotFound";
 
 function App() {
@@ -25,6 +26,8 @@ function App() {
               <Route path="/products" element={<Products />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/track" element={<OrderTracking />} />
+              <Route path="/track/:orderNumber" element={<OrderTracking />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               {/* Catch-all */}

@@ -76,9 +76,8 @@ export const dashboardAPI = {
 
 // Order APIs
 export const orderAPI = {
-  getAll: () => fetchAPI("/orders"),
+  getAll: () => fetchAPI("/orders/all"),          // admin: all orders
   getById: (id) => fetchAPI(`/orders/${id}`),
-  // Admin manually logs a WhatsApp order
   adminCreate: (data) => fetchAPI("/orders/admin", {
     method: "POST",
     body: JSON.stringify(data),

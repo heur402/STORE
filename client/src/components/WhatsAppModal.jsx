@@ -47,6 +47,7 @@ const WhatsAppModal = ({ isOpen, onClose, cartItems = [], total = 0, onOrderPlac
       `*Phone:* ${guestPhone}\n\n` +
       `*Order Details:*\n${itemLines}\n\n` +
       `*Total: RWF ${total.toLocaleString()}*\n\n` +
+      `Track your order at: ${window.location.origin}/track/${orderNumber}\n\n` +
       `Please confirm my order. Thank you!`
     );
   };

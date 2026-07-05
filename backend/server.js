@@ -7,10 +7,14 @@ import productRoutes from "./src/routes/productRoutes.js";
 import uploadRoutes from "./src/routes/uploadRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
 import notificationRoutes from "./src/routes/notificationRoutes.js";
+import { verifyEmailConfig } from "./src/services/notificationService.js";
 import path from "path";
 
 dotenv.config();
 connectDB();
+
+// Verify Gmail connection on startup (non-blocking)
+verifyEmailConfig();
 
 const app = express();
 

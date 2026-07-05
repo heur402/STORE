@@ -12,42 +12,48 @@ import {
   cancelOrder,
   deleteOrder,
   getOrderStats,
+  trackOrder,
 } from "../controllers/orderController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// ── Stats (must be before /:id to avoid route conflict)
+// ── Fixed-path routes MUST come before /:id to prevent Express swallowing them
+
+// Stats
 router.get("/dashboard/stats", protect, admin, getOrderStats);
 
-// ── Admin manually logs a WhatsApp order
-router.post("/admin", protect, admin, adminCreateOrder);
+// All orders list (admin)
+router.get("/all", protect, admin, getAllOrders);
 
-// ── Public: create order from storefront
-router.post("/", createOrder);
-
-// ── User: own orders
+// Logged-in user's own orders
 router.get("/myorders", protect, getMyOrders);
 
-// ── Admin: all orders
-router.get("/", protect, admin, getAllOrders);
+// Public order tracking by orderNumber (e.g. ORD-202507-042)
+router.get("/track/:orderNumber", trackOrder);
 
-// ── Single order
+// Admin manually logs a WhatsApp order
+router.post("/admin", protect, admin, adminCreateOrder);
+
+// Public: create order from storefront
+router.post("/", createOrder);
+
+// Single order by ID
 router.get("/:id", protect, getOrderById);
 
-// ── Status update (admin) — includes stock decrement/restore logic
+// Status update (admin) — stock decrement/restore logic inside
 router.put("/:id/status", protect, admin, updateOrderStatus);
 
-// ── Pay
+// Pay
 router.put("/:id/pay", protect, updateOrderToPaid);
 
-// ── Deliver
+// Deliver
 router.put("/:id/deliver", protect, updateOrderToDelivered);
 
-// ── Cancel
+// Cancel
 router.put("/:id/cancel", protect, cancelOrder);
 
-// ── Delete (admin)
+// Hard delete (admin)
 router.delete("/:id", protect, admin, deleteOrder);
 
 export default router;
