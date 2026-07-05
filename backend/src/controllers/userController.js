@@ -4,7 +4,7 @@ import generateToken from "../utils/generateToken.js";
 // 🔐 REGISTER
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -15,7 +15,7 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password,
-      role: "client", // Force client role for public registration
+      role: role || "client", // Use provided role or default to client
     });
 
     res.status(201).json({

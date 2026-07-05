@@ -1,351 +1,389 @@
-import React, { useState, useEffect } from "react";
+// src/page/Clients.jsx
+// Repurposed as "Guest Contacts" — shows unique customers who placed orders via WhatsApp
+import React, { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
-  UserCheck,
-  UserX,
   Search,
-  Filter,
-  MoreVertical,
-  Mail,
-  Phone,
-  Calendar,
-  Shield,
-  ShieldOff,
-  Grid,
-  List as ListIcon,
   RefreshCw,
-  MoreHorizontal
+  MessageCircle,
+  Phone,
+  ShoppingBag,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Package,
 } from "lucide-react";
-import { clientAPI } from "../services/api";
+import { orderAPI } from "../services/api";
+
+// ── Your store WhatsApp number
+const STORE_WHATSAPP = "250792412177";
 
 const Clients = () => {
   const { darkMode } = useOutletContext();
-  const [clients, setClients] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState("all"); // all, active, suspended
-  const [viewMode, setViewMode] = useState("table"); // table, grid
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    suspended: 0,
-    newToday: 0
-  });
+  const [expandedContact, setExpandedContact] = useState(null);
 
   useEffect(() => {
-    fetchClients();
+    fetchOrders();
   }, []);
 
-  const fetchClients = async () => {
+  const fetchOrders = async () => {
     setLoading(true);
     try {
-      const data = await clientAPI.getAll();
-      setClients(data);
-      calculateStats(data);
-    } catch (error) {
-      console.error("Error fetching clients:", error);
+      const data = await orderAPI.getAll();
+      setOrders(data);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateStats = (clientList) => {
-    const total = clientList.length;
-    const active = clientList.filter(c => !c.suspended).length;
-    const suspended = clientList.filter(c => c.suspended).length;
+  // Build unique guest contact list from orders
+  // Key by phone (or name if no phone), aggregate their orders
+  const contacts = useMemo(() => {
+    const map = new Map();
 
-    // Simple mock for "new today" based on createdAt
-    const today = new Date().toDateString();
-    const newToday = clientList.filter(c => new Date(c.createdAt).toDateString() === today).length;
+    orders.forEach((order) => {
+      const name = order.guestName || order.user?.name || "Unknown";
+      const phone = order.guestPhone || order.user?.phone || "";
+      const key = phone || name; // deduplicate by phone, fallback name
 
-    setStats({ total, active, suspended, newToday });
-  };
-
-  const toggleStatus = async (clientId) => {
-    try {
-      await clientAPI.suspend(clientId);
-      const updatedClients = clients.map(c =>
-        c._id === clientId ? { ...c, suspended: !c.suspended } : c
-      );
-      setClients(updatedClients);
-      calculateStats(updatedClients);
-    } catch (error) {
-      console.error("Error toggling status:", error);
-    }
-  };
-
-  const filteredClients = clients.filter(client => {
-    const matchesSearch =
-      client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesFilter =
-      filter === "all" ||
-      (filter === "active" && !client.suspended) ||
-      (filter === "suspended" && client.suspended);
-
-    return matchesSearch && matchesFilter;
-  });
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name,
+          phone,
+          orders: [],
+          totalSpent: 0,
+          firstOrderDate: order.createdAt,
+          lastOrderDate: order.createdAt,
+        });
       }
-    }
+
+      const contact = map.get(key);
+      contact.orders.push(order);
+      contact.totalSpent += order.totalPrice || 0;
+
+      if (new Date(order.createdAt) < new Date(contact.firstOrderDate))
+        contact.firstOrderDate = order.createdAt;
+      if (new Date(order.createdAt) > new Date(contact.lastOrderDate))
+        contact.lastOrderDate = order.createdAt;
+    });
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.lastOrderDate) - new Date(a.lastOrderDate)
+    );
+  }, [orders]);
+
+  const filteredContacts = useMemo(() => {
+    if (!searchTerm.trim()) return contacts;
+    const lower = searchTerm.toLowerCase();
+    return contacts.filter(
+      (c) =>
+        c.name.toLowerCase().includes(lower) ||
+        c.phone.toLowerCase().includes(lower)
+    );
+  }, [contacts, searchTerm]);
+
+  const fmt = (val) =>
+    new Intl.NumberFormat("en-RW", {
+      style: "currency",
+      currency: "RWF",
+      maximumFractionDigits: 0,
+    }).format(val);
+
+  const formatDate = (d) =>
+    new Date(d).toLocaleDateString("en-RW", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+  const whatsappLink = (phone, name) => {
+    const clean = phone.replace(/\D/g, "");
+    const msg = encodeURIComponent(
+      `Hello ${name}, thank you for ordering from us! How can we help you today?`
+    );
+    return `https://wa.me/${clean || STORE_WHATSAPP}?text=${msg}`;
   };
 
-  const item = {
-    hidden: { y: 20, opacity: 0 },
-    show: { y: 0, opacity: 1 }
+  const statusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "delivered": return "bg-emerald-100 text-emerald-700";
+      case "pending": return "bg-amber-100 text-amber-700";
+      case "out for delivery": return "bg-blue-100 text-blue-700";
+      case "cancelled": return "bg-red-100 text-red-700";
+      default: return "bg-gray-100 text-gray-600";
+    }
   };
 
   return (
-    <div className={`p-4 sm:p-6 min-h-screen mb-20 transition-colors duration-300 ${darkMode ? "bg-gray-900" : "bg-gray-50"
-      }`}>
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className={`p-4 sm:p-6 min-h-screen mb-20 transition-colors duration-300 ${
+      darkMode ? "bg-gray-900" : "bg-gray-50"
+    }`}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
-            Client Management
+            Guest Contacts
           </h1>
-          <p className={`${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-            Manage and monitor your customer base
+          <p className={`text-sm mt-0.5 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+            Customers who ordered via WhatsApp — {contacts.length} unique contact{contacts.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className={`flex items-center rounded-lg p-1 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-            }`}>
-            <button
-              onClick={() => setViewMode("table")}
-              className={`p-2 rounded-md transition-all ${viewMode === "table"
-                  ? "bg-indigo-600 text-white shadow-lg"
-                  : darkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"
-                }`}
-            >
-              <ListIcon size={18} />
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`p-2 rounded-md transition-all ${viewMode === "grid"
-                  ? "bg-indigo-600 text-white shadow-lg"
-                  : darkMode ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"
-                }`}
-            >
-              <Grid size={18} />
-            </button>
-          </div>
-          <button
-            onClick={fetchClients}
-            className={`p-3 rounded-lg border transition-all ${darkMode
-                ? "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"
-                : "bg-white border-gray-200 text-gray-600 hover:text-indigo-600"
-              }`}
-          >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
+        <button
+          onClick={fetchOrders}
+          className={`self-start sm:self-auto p-2.5 rounded-xl border transition-colors ${
+            darkMode
+              ? "bg-gray-800 border-gray-700 text-gray-400 hover:text-white"
+              : "bg-white border-gray-200 text-gray-500 hover:text-indigo-600"
+          }`}
+        >
+          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+        </button>
       </div>
 
-      {/* Stats Cards */}
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-      >
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         {[
-          { label: "Total Clients", value: stats.total, icon: Users, color: "blue" },
-          { label: "Active Now", value: stats.active, icon: UserCheck, color: "green" },
-          { label: "Suspended", value: stats.suspended, icon: UserX, color: "red" },
-          { label: "New Today", value: stats.newToday, icon: Calendar, color: "purple" }
-        ].map((stat, idx) => (
-          <motion.div
-            key={idx}
-            variants={item}
-            className={`p-6 rounded-2xl shadow-sm border transition-all hover:shadow-md ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+          {
+            label: "Total Contacts",
+            value: contacts.length,
+            icon: Users,
+            color: "indigo",
+          },
+          {
+            label: "Total Orders",
+            value: orders.length,
+            icon: ShoppingBag,
+            color: "orange",
+          },
+          {
+            label: "Total Revenue",
+            value: fmt(orders.reduce((s, o) => s + (o.totalPrice || 0), 0)),
+            icon: Package,
+            color: "emerald",
+            wide: true,
+          },
+        ].map((s) => {
+          const Icon = s.icon;
+          const colors = {
+            indigo: darkMode ? "bg-indigo-900/40 text-indigo-300" : "bg-indigo-100 text-indigo-600",
+            orange: darkMode ? "bg-orange-900/40 text-orange-300" : "bg-orange-100 text-orange-600",
+            emerald: darkMode ? "bg-emerald-900/40 text-emerald-300" : "bg-emerald-100 text-emerald-600",
+          };
+          return (
+            <div
+              key={s.label}
+              className={`p-4 rounded-xl shadow-sm border ${s.wide ? "col-span-2 sm:col-span-1" : ""} ${
+                darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
               }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`text-sm font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                  {stat.label}
-                </p>
-                <h3 className={`text-2xl font-bold mt-1 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                  {stat.value}
-                </h3>
-              </div>
-              <div className={`p-3 rounded-xl ${stat.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                  stat.color === 'green' ? 'bg-green-100 text-green-600' :
-                    stat.color === 'red' ? 'bg-red-100 text-red-600' :
-                      'bg-purple-100 text-purple-600'
-                }`}>
-                <stat.icon size={24} />
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className={`text-xs font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    {s.label}
+                  </p>
+                  <p className={`text-xl font-extrabold mt-0.5 ${darkMode ? "text-white" : "text-gray-900"}`}>
+                    {s.value}
+                  </p>
+                </div>
+                <div className={`p-2.5 rounded-xl ${colors[s.color]}`}>
+                  <Icon size={20} />
+                </div>
               </div>
             </div>
-          </motion.div>
-        ))}
-      </motion.div>
-
-      {/* Filters Section */}
-      <div className={`p-4 rounded-2xl shadow-sm border mb-8 flex flex-col md:flex-row gap-4 items-center justify-between ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-        }`}>
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search clients by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full pl-10 pr-4 py-2 rounded-xl outline-none border transition-all ${darkMode
-                ? "bg-gray-900 border-gray-700 text-white focus:border-indigo-500"
-                : "bg-gray-50 border-gray-200 text-gray-900 focus:border-indigo-500"
-              }`}
-          />
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-          {["all", "active", "suspended"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition-all whitespace-nowrap ${filter === f
-                  ? "bg-indigo-600 text-white shadow-lg"
-                  : darkMode
-                    ? "bg-gray-900 text-gray-400 hover:text-white border border-gray-700"
-                    : "bg-gray-50 text-gray-600 hover:text-indigo-600 border border-gray-100"
-                }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {/* Clients Display */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className={`mt-4 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Loading client records...</p>
-        </div>
-      ) : filteredClients.length > 0 ? (
-        viewMode === "table" ? (
-          <div className={`rounded-2xl border shadow-sm overflow-hidden ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-            }`}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className={`${darkMode ? "bg-gray-900/50" : "bg-gray-50"}`}>
-                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Client</th>
-                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Contact</th>
-                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Joined Date</th>
-                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Status</th>
-                    <th className={`px-6 py-4 text-xs font-bold uppercase tracking-wider ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700/50">
-                  <AnimatePresence>
-                    {filteredClients.map((client) => (
-                      <motion.tr
-                        key={client._id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className={`transition-all hover:bg-black/5 ${darkMode ? "text-gray-300" : "text-gray-700"}`}
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
-                              {client.name?.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-semibold">{client.name}</p>
-                              <p className="text-xs text-gray-500">UID: {client._id.slice(-8).toUpperCase()}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
-                            <p className="text-sm flex items-center gap-2"><Mail size={14} className="text-gray-500" /> {client.email}</p>
-                            <p className="text-sm flex items-center gap-2"><Phone size={14} className="text-gray-500" /> {client.phone || "No phone"}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          {new Date(client.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${client.suspended
-                              ? "bg-red-100 text-red-600"
-                              : "bg-green-100 text-green-600"
-                            }`}>
-                            {client.suspended ? "Suspended" : "Active"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => toggleStatus(client._id)}
-                            className={`p-2 rounded-lg transition-all ${client.suspended
-                                ? "bg-green-100 text-green-600 hover:bg-green-200"
-                                : "bg-red-100 text-red-600 hover:bg-red-200"
-                              }`}
-                          >
-                            {client.suspended ? <Shield size={18} /> : <ShieldOff size={18} />}
-                          </button>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </AnimatePresence>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredClients.map((client) => (
-              <motion.div
-                key={client._id}
-                variants={item}
-                className={`p-6 rounded-2xl border shadow-sm transition-all hover:shadow-lg ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-                  }`}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl font-bold font-serif">
-                    {client.name?.charAt(0)}
-                  </div>
-                  <button onClick={() => toggleStatus(client._id)} className={`p-2 rounded-xl ${client.suspended ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-                    }`}>
-                    {client.suspended ? <Shield size={20} /> : <ShieldOff size={20} />}
-                  </button>
-                </div>
-                <div>
-                  <h3 className={`text-lg font-bold mb-1 ${darkMode ? "text-white" : "text-gray-900"}`}>{client.name}</h3>
-                  <p className="text-sm text-gray-500 mb-4">{client.email}</p>
+      {/* Search */}
+      <div className={`mb-5 relative`}>
+        <Search
+          size={16}
+          className={`absolute left-3 top-1/2 -translate-y-1/2 ${
+            darkMode ? "text-gray-500" : "text-gray-400"
+          }`}
+        />
+        <input
+          type="text"
+          placeholder="Search by name or phone..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition ${
+            darkMode
+              ? "bg-gray-800 border-gray-700 text-gray-200 placeholder-gray-500"
+              : "bg-white border-gray-200 text-gray-800 placeholder-gray-400"
+          }`}
+        />
+      </div>
 
-                  <div className="space-y-2 pt-4 border-t border-gray-700/30">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Joined:</span>
-                      <span className={darkMode ? "text-gray-300" : "text-gray-700"}>{new Date(client.createdAt).toLocaleDateString()}</span>
+      {/* Contact List */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className={`mt-3 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+            Loading contacts...
+          </p>
+        </div>
+      ) : filteredContacts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <Users className={`w-16 h-16 mb-3 ${darkMode ? "text-gray-700" : "text-gray-300"}`} />
+          <h3 className={`text-lg font-semibold ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
+            No contacts found
+          </h3>
+          <p className={`text-sm mt-1 ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
+            {orders.length === 0 ? "No orders have been placed yet." : "Try a different search term."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <AnimatePresence>
+            {filteredContacts.map((contact, i) => (
+              <motion.div
+                key={contact.key}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className={`rounded-2xl border shadow-sm overflow-hidden ${
+                  darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
+                }`}
+              >
+                {/* Contact row */}
+                <div
+                  onClick={() =>
+                    setExpandedContact(
+                      expandedContact === contact.key ? null : contact.key
+                    )
+                  }
+                  className={`p-4 cursor-pointer flex items-center justify-between gap-4 transition-colors ${
+                    darkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                      {contact.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">Status:</span>
-                      <span className={`font-bold ${client.suspended ? "text-red-500" : "text-green-500"}`}>
-                        {client.suspended ? "Suspended" : "Active"}
-                      </span>
+                    <div className="min-w-0">
+                      <p className={`font-semibold truncate ${darkMode ? "text-white" : "text-gray-900"}`}>
+                        {contact.name}
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {contact.phone ? (
+                          <span className={`text-xs flex items-center gap-1 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                            <Phone size={11} /> {contact.phone}
+                          </span>
+                        ) : (
+                          <span className={`text-xs italic ${darkMode ? "text-gray-600" : "text-gray-400"}`}>
+                            No phone
+                          </span>
+                        )}
+                        <span className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
+                          · {contact.orders.length} order{contact.orders.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right hidden sm:block">
+                      <p className={`text-sm font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
+                        {fmt(contact.totalSpent)}
+                      </p>
+                      <p className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
+                        total spent
+                      </p>
+                    </div>
+
+                    {/* WhatsApp button */}
+                    {contact.phone && (
+                      <a
+                        href={whatsappLink(contact.phone, contact.name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-full transition-colors"
+                      >
+                        <MessageCircle size={13} />
+                        <span className="hidden sm:inline">WhatsApp</span>
+                      </a>
+                    )}
+
+                    {expandedContact === contact.key ? (
+                      <ChevronUp size={18} className={darkMode ? "text-gray-400" : "text-gray-400"} />
+                    ) : (
+                      <ChevronDown size={18} className={darkMode ? "text-gray-400" : "text-gray-400"} />
+                    )}
+                  </div>
                 </div>
+
+                {/* Expanded order history */}
+                <AnimatePresence>
+                  {expandedContact === contact.key && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.22 }}
+                      className={`border-t ${darkMode ? "border-gray-700" : "border-gray-100"}`}
+                    >
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className={`text-xs font-bold uppercase tracking-wider ${
+                            darkMode ? "text-gray-400" : "text-gray-500"
+                          }`}>
+                            Order History
+                          </p>
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className={darkMode ? "text-gray-400" : "text-gray-500"}>
+                              <Calendar size={11} className="inline mr-1" />
+                              First: {formatDate(contact.firstOrderDate)}
+                            </span>
+                            <span className={darkMode ? "text-gray-400" : "text-gray-500"}>
+                              Last: {formatDate(contact.lastOrderDate)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {contact.orders.map((order) => (
+                          <div
+                            key={order._id}
+                            className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
+                              darkMode ? "bg-gray-700/60" : "bg-gray-50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`font-medium truncate ${darkMode ? "text-gray-200" : "text-gray-800"}`}>
+                                {order.orderNumber || `#${order._id.slice(-6).toUpperCase()}`}
+                              </span>
+                              <span className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
+                                {formatDate(order.createdAt)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor(order.orderStatus)}`}>
+                                {order.orderStatus}
+                              </span>
+                              <span className={`font-semibold ${darkMode ? "text-gray-200" : "text-gray-800"}`}>
+                                {fmt(order.totalPrice)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ))}
-          </div>
-        )
-      ) : (
-        <div className="text-center py-20">
-          <div className="text-6xl mb-4">🔍</div>
-          <h3 className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>No clients found</h3>
-          <p className="text-gray-500">Try refining your search or filter</p>
+          </AnimatePresence>
         </div>
       )}
     </div>

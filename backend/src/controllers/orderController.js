@@ -2,7 +2,7 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
 
-// Create a new order
+// Create a new order — works for both authenticated users and guests
 export const createOrder = async (req, res) => {
   try {
     const {
@@ -14,6 +14,8 @@ export const createOrder = async (req, res) => {
       taxPrice,
       totalPrice,
       promotions,
+      guestName,
+      guestPhone,
     } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
@@ -35,7 +37,10 @@ export const createOrder = async (req, res) => {
     }
 
     const order = new Order({
-      user: req.user._id,
+      // attach user if authenticated, otherwise leave null (guest order)
+      user: req.user?._id || null,
+      guestName: guestName || "",
+      guestPhone: guestPhone || "",
       orderItems,
       deliveryAddress,
       paymentMethod,
@@ -45,16 +50,15 @@ export const createOrder = async (req, res) => {
       totalPrice,
       promotions: promotions || [],
       orderStatus: "Pending",
-      paymentStatus: "Pending"
+      paymentStatus: "Pending",
     });
 
     const createdOrder = await order.save();
 
-    // Automatically reduce stock after order is created (or wait for confirmation depending on business logic)
-    // Here we reduce it immediately to prevent over-ordering
+    // Reduce stock immediately to prevent over-ordering
     for (const item of orderItems) {
       await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity }
+        $inc: { stock: -item.quantity },
       });
     }
 

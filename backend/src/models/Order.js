@@ -35,11 +35,16 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  // user is optional — orders can be placed by guests via WhatsApp
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
+    required: false,
+    default: null,
   },
+  // Guest info for orders placed without an account
+  guestName: { type: String, default: "" },
+  guestPhone: { type: String, default: "" },
   orderNumber: {
     type: String,
     unique: true,

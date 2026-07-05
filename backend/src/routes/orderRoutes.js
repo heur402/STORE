@@ -16,8 +16,8 @@ import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Create a new order
-router.post("/", protect, createOrder);
+// Create a new order — public, no auth required
+router.post("/", createOrder);
 
 // Get logged in user's orders
 router.get("/myorders", protect, getMyOrders);

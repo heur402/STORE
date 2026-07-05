@@ -9,6 +9,7 @@ import {
   Package,
   MapPin,
   User,
+  Phone,
   CreditCard,
   ChevronDown,
   ChevronUp,
@@ -17,7 +18,8 @@ import {
   Truck,
   AlertCircle,
   RefreshCw,
-  ArrowRight
+  ArrowRight,
+  MessageCircle
 } from "lucide-react";
 import { orderAPI } from "../services/api";
 
@@ -137,13 +139,21 @@ const Orders = () => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   };
 
+  // Helper: resolve customer display name & phone from either guest or legacy user field
+  const getCustomerName = (order) =>
+    order.guestName || order.user?.name || order.user?.email || "Guest";
+
+  const getCustomerPhone = (order) =>
+    order.guestPhone || order.user?.phone || null;
+
   const filteredOrders = orders.filter(order => {
     const matchesFilter = filter === "all" || order.orderStatus?.toLowerCase() === filter.toLowerCase();
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       order._id?.toLowerCase().includes(searchLower) ||
-      order.user?.name?.toLowerCase().includes(searchLower) ||
-      order.user?.email?.toLowerCase().includes(searchLower);
+      order.orderNumber?.toLowerCase().includes(searchLower) ||
+      getCustomerName(order).toLowerCase().includes(searchLower) ||
+      (getCustomerPhone(order) || "").toLowerCase().includes(searchLower);
     return matchesFilter && matchesSearch;
   });
 
@@ -461,8 +471,13 @@ const Orders = () => {
                             <span className={`text-sm ${
                               darkMode ? "text-gray-300" : "text-gray-600"
                             }`}>
-                              {order.user?.name || "Unknown Customer"}
+                              {getCustomerName(order)}
                             </span>
+                            {getCustomerPhone(order) && (
+                              <span className={`text-xs ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
+                                · {getCustomerPhone(order)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -595,8 +610,29 @@ const Orders = () => {
                               <p className={`text-sm flex items-center gap-1.5 ${
                                 darkMode ? "text-gray-300" : "text-gray-700"
                               }`}>
-                                <User size={13} className="opacity-60" /> {order.user?.name || order.user?.email}
+                                <User size={13} className="opacity-60" /> {getCustomerName(order)}
                               </p>
+                              {getCustomerPhone(order) && (
+                                <div className="flex items-center gap-1.5">
+                                  <p className={`text-sm flex items-center gap-1.5 ${
+                                    darkMode ? "text-gray-400" : "text-gray-600"
+                                  }`}>
+                                    <Phone size={13} className="opacity-60" /> {getCustomerPhone(order)}
+                                  </p>
+                                  {/* WhatsApp quick-contact button */}
+                                  <a
+                                    href={`https://wa.me/${getCustomerPhone(order).replace(/\D/g, "")}?text=${encodeURIComponent(
+                                      `Hello ${getCustomerName(order)}, your order ${order.orderNumber || "#" + order._id.slice(-6).toUpperCase()} is now "${order.orderStatus}".`
+                                    )}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition-colors"
+                                  >
+                                    <MessageCircle size={11} />
+                                    WhatsApp
+                                  </a>
+                                </div>
+                              )}
                               <p className={`text-sm flex items-center gap-1.5 ${
                                 darkMode ? "text-gray-400" : "text-gray-600"
                               }`}>

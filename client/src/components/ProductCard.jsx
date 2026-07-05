@@ -4,13 +4,9 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { productAPI } from '../services/api';
 
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { user } = useAuth();
-
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {

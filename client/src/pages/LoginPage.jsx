@@ -1,115 +1,56 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Mail,
-  Lock,
-  User,
-  Phone,
-  Eye,
-  EyeOff
-} from "lucide-react";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Mail, Lock, Eye, EyeOff, Store } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const LoginPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    fullName: "",
-    confirmPassword: "",
-    phone: "",
-    agreeToTerms: false
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const validateEmail = (email) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = "Enter a valid email";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    }
-
-    if (!isLogin) {
-      if (!formData.fullName) {
-        newErrors.fullName = "Full name is required";
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = "Passwords do not match";
-      }
-
-      if (!formData.agreeToTerms) {
-        newErrors.agreeToTerms = "You must accept terms";
-      }
-    }
-
-    return newErrors;
-  };
-
-  const { login, register, logout } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Set initial mode based on path
-  useEffect(() => {
-    if (location.pathname === "/register") {
-      setIsLogin(false);
-    } else {
-      setIsLogin(true);
-    }
-  }, [location.pathname]);
+  // Go back to where the user came from, or home
+  const from = location.state?.from?.pathname || "/";
+
+  const validate = () => {
+    const errs = {};
+    if (!formData.email) errs.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errs.email = "Enter a valid email";
+    if (!formData.password) errs.password = "Password is required";
+    return errs;
+  };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value
-    }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    // Clear field error on change
+    if (errors[e.target.name]) setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newErrors = validateForm();
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    const errs = validate();
+    if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setErrors({});
     setIsLoading(true);
-
     try {
-      if (isLogin) {
-        const userData = await login(formData.email, formData.password);
+      const userData = await login(formData.email, formData.password);
 
-        // Ensure only clients can log in here
-        if (userData.role !== 'client') {
-          logout();
-          setErrors({ submit: "This page is for clients only. Admins please use the Admin Dashboard." });
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        await register(formData.fullName, formData.email, formData.password, formData.phone);
+      // Admins should use the admin dashboard, not this client site
+      if (userData.role !== "client") {
+        logout();
+        setErrors({ submit: "This portal is for clients only. Admins please use the Admin Dashboard." });
+        return;
       }
-      navigate("/");
+
+      navigate(from, { replace: true });
     } catch (err) {
-      setErrors({ submit: err.message || "Authentication failed" });
+      setErrors({ submit: err.message || "Login failed. Check your credentials." });
     } finally {
       setIsLoading(false);
     }
@@ -118,181 +59,95 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
+        initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
         className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl"
       >
         {/* Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-white tracking-tight">
-            STORE
-          </h1>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Store className="h-8 w-8 text-orange-500" />
+            <span className="font-extrabold text-2xl text-white tracking-wide">STORE</span>
+          </div>
+          <p className="text-gray-400 text-sm">Sign in to your account</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex mb-6 bg-gray-800 rounded-lg p-1">
-          <button
-            onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition ${isLogin
-              ? "bg-indigo-600 text-white"
-              : "text-gray-400 hover:text-white"
-              }`}
-          >
-            Login
-          </button>
-          <button
-            onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 rounded-md text-sm font-medium transition ${!isLogin
-              ? "bg-indigo-600 text-white"
-              : "text-gray-400 hover:text-white"
-              }`}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Submit error */}
           {errors.submit && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm text-center font-medium"
+              className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"
             >
               {errors.submit}
             </motion.div>
           )}
 
-          <AnimatePresence>
-            {!isLogin && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-              >
-                <label className="text-sm text-gray-400">Full Name</label>
-                <div className="relative mt-1">
-                  <User className="absolute left-3 top-3 text-gray-500 w-4 h-4" />
-                  <input
-                    type="text"
-                    name="fullName"
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                  />
-                </div>
-                {errors.fullName && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.fullName}
-                  </p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Email */}
           <div>
-            <label className="text-sm text-gray-400">Email</label>
-            <div className="relative mt-1">
-              <Mail className="absolute left-3 top-3 text-gray-500 w-4 h-4" />
+            <label className="text-sm text-gray-400 mb-1 block">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
               <input
                 type="email"
                 name="email"
+                value={formData.email}
                 onChange={handleChange}
-                className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="you@example.com"
+                className={`w-full pl-9 pr-3 py-2.5 bg-gray-800 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${
+                  errors.email ? "border-red-500" : "border-gray-700"
+                }`}
               />
             </div>
-            {errors.email && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.email}
-              </p>
-            )}
+            {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
           </div>
 
           {/* Password */}
           <div>
-            <label className="text-sm text-gray-400">Password</label>
-            <div className="relative mt-1">
-              <Lock className="absolute left-3 top-3 text-gray-500 w-4 h-4" />
+            <label className="text-sm text-gray-400 mb-1 block">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
+                value={formData.password}
                 onChange={handleChange}
-                className="w-full pl-9 pr-10 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                placeholder="••••••••"
+                className={`w-full pl-9 pr-10 py-2.5 bg-gray-800 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${
+                  errors.password ? "border-red-500" : "border-gray-700"
+                }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-gray-500"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.password}
-              </p>
-            )}
+            {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
           </div>
 
-          {/* Confirm Password */}
-          {!isLogin && (
-            <div>
-              <label className="text-sm text-gray-400">
-                Confirm Password
-              </label>
-              <div className="relative mt-1">
-                <Lock className="absolute left-3 top-3 text-gray-500 w-4 h-4" />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  onChange={handleChange}
-                  className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                />
-              </div>
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.confirmPassword}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Terms */}
-          {!isLogin && (
-            <label className="flex items-center text-sm text-gray-400 space-x-2">
-              <input
-                type="checkbox"
-                name="agreeToTerms"
-                onChange={handleChange}
-              />
-              <span>I agree to Terms & Privacy</span>
-            </label>
-          )}
-
           {/* Submit */}
-          <button
+          <motion.button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 transition rounded-lg text-white font-medium"
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed transition rounded-lg text-white font-medium flex items-center justify-center gap-2"
           >
-            {isLoading
-              ? "Processing..."
-              : isLogin
-                ? "Sign In"
-                : "Create Account"}
-          </button>
+            {isLoading && (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
+            {isLoading ? "Signing in..." : "Sign In"}
+          </motion.button>
         </form>
 
-        {/* Divider */}
-        <div className="my-6 border-t border-gray-800" />
-
-        {/* Social */}
-        <div className="space-y-3">
-          <button className="w-full py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition">
-            Continue with Google
-          </button>
-        </div>
+        {/* Info note */}
+        <p className="text-center text-xs text-gray-600 mt-6">
+          Don't have an account? Contact the store to get access.
+        </p>
       </motion.div>
     </div>
   );

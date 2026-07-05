@@ -13,7 +13,6 @@ import {
   Package
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
 import { productAPI } from '../services/api';
 
 const ProductDetail = () => {
@@ -24,7 +23,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const { addToCart } = useCart();
-  const { user } = useAuth();
+  // user import removed — app is now fully public
 
   useEffect(() => {
     const fetchProduct = async () => {
