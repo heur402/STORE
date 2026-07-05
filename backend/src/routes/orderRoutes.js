@@ -2,6 +2,7 @@
 import express from "express";
 import {
   createOrder,
+  adminCreateOrder,
   getOrderById,
   getMyOrders,
   getAllOrders,
@@ -16,34 +17,37 @@ import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Create a new order — public, no auth required
-router.post("/", createOrder);
-
-// Get logged in user's orders
-router.get("/myorders", protect, getMyOrders);
-
-// Get order by ID
-router.get("/:id", protect, getOrderById);
-
-// Get all orders (Admin only)
-router.get("/", protect, admin, getAllOrders);
-
-// Get order stats (Admin only)
+// ── Stats (must be before /:id to avoid route conflict)
 router.get("/dashboard/stats", protect, admin, getOrderStats);
 
-// Update order to paid
-router.put("/:id/pay", protect, updateOrderToPaid);
+// ── Admin manually logs a WhatsApp order
+router.post("/admin", protect, admin, adminCreateOrder);
 
-// Update order to delivered
-router.put("/:id/deliver", protect, updateOrderToDelivered);
+// ── Public: create order from storefront
+router.post("/", createOrder);
 
-// Update order status (Admin only)
+// ── User: own orders
+router.get("/myorders", protect, getMyOrders);
+
+// ── Admin: all orders
+router.get("/", protect, admin, getAllOrders);
+
+// ── Single order
+router.get("/:id", protect, getOrderById);
+
+// ── Status update (admin) — includes stock decrement/restore logic
 router.put("/:id/status", protect, admin, updateOrderStatus);
 
-// Cancel order
+// ── Pay
+router.put("/:id/pay", protect, updateOrderToPaid);
+
+// ── Deliver
+router.put("/:id/deliver", protect, updateOrderToDelivered);
+
+// ── Cancel
 router.put("/:id/cancel", protect, cancelOrder);
 
-// Delete order (Admin only)
+// ── Delete (admin)
 router.delete("/:id", protect, admin, deleteOrder);
 
 export default router;

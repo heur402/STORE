@@ -26,6 +26,11 @@ const productSchema = new mongoose.Schema({
     enum: ["In Stock", "Out of Stock"], 
     default: "In Stock" 
   },
+  // Explicit out-of-stock flag for fast queries / storefront hiding
+  outOfStock: {
+    type: Boolean,
+    default: false,
+  },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   rating: { type: Number, default: 0 },
   reviewsCount: { type: Number, default: 0 },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -19,27 +19,26 @@ import {
   AlertCircle,
   RefreshCw,
   ArrowRight,
-  MessageCircle
+  MessageCircle,
+  Plus,
 } from "lucide-react";
 import { orderAPI } from "../services/api";
 
 const Orders = () => {
   const { darkMode } = useOutletContext();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); 
+  const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [stockError, setStockError] = useState({}); // { [orderId]: errorMessage }
   const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    outDelivery: 0,
-    delivered: 0,
-    cancelled: 0
+    total: 0, pending: 0, outDelivery: 0, delivered: 0, cancelled: 0,
   });
-  const [updatingOrder, setUpdatingOrder] = useState(null); // track which order is being updated
+  const [updatingOrder, setUpdatingOrder] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -63,8 +62,8 @@ const Orders = () => {
     setStats(newStats);
   };
 
-  // Delivery steps for the simplified flow
-  const DELIVERY_STEPS = ["Pending", "Out for Delivery", "Delivered"];
+  // Delivery steps for the full flow
+  const DELIVERY_STEPS = ["Pending", "Confirmed", "Out for Delivery", "Delivered"];
 
   const getStepIndex = (status) => {
     if (status === "Cancelled") return -1;
@@ -98,6 +97,7 @@ const Orders = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     setUpdatingOrder(orderId);
+    setStockError((prev) => ({ ...prev, [orderId]: null }));
     try {
       await orderAPI.updateStatus(orderId, newStatus);
 
@@ -117,6 +117,10 @@ const Orders = () => {
         timestamp: new Date().toISOString()
       });
     } catch (error) {
+      // Stock-insufficient error comes back with a specific message
+      if (error.message?.includes("Not enough stock")) {
+        setStockError((prev) => ({ ...prev, [orderId]: error.message }));
+      }
       addNotification({
         id: Date.now(),
         message: `Update failed: ${error.message}`,
@@ -228,7 +232,21 @@ const Orders = () => {
               Orders Management
             </h1>
 
-            <div className="relative">
+            <div className="flex items-center gap-2">
+              {/* Log new order button */}
+              <button
+                onClick={() => navigate("/orders/add")}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                  darkMode
+                    ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                    : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                }`}
+              >
+                <Plus size={16} />
+                <span className="hidden sm:inline">Log Order</span>
+              </button>
+
+              <div className="relative">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className={`relative p-2 rounded-lg transition-colors ${
@@ -327,6 +345,7 @@ const Orders = () => {
                   </>
                 )}
               </AnimatePresence>
+            </div>
             </div>
           </div>
         </div>
@@ -689,48 +708,87 @@ const Orders = () => {
 
                           {/* --- Action Buttons --- */}
                           {order.orderStatus !== 'Delivered' && order.orderStatus !== 'Cancelled' && (
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              {order.orderStatus === "Pending" && (
-                                <>
+                            <div className="space-y-2 pt-1">
+                              {/* Stock error banner */}
+                              {stockError[order._id] && (
+                                <div className={`flex items-start gap-2 px-3 py-2.5 rounded-xl text-sm ${
+                                  darkMode ? "bg-red-900/20 border border-red-800 text-red-300" : "bg-red-50 border border-red-200 text-red-700"
+                                }`}>
+                                  <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+                                  <span>{stockError[order._id]}</span>
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap gap-2">
+                                {order.orderStatus === "Pending" && (
+                                  <>
+                                    {/* Confirm — triggers stock decrement */}
+                                    <motion.button
+                                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                      disabled={updatingOrder === order._id}
+                                      onClick={() => updateOrderStatus(order._id, "Confirmed")}
+                                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-all shadow-sm"
+                                    >
+                                      {updatingOrder === order._id ? (
+                                        <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      ) : (
+                                        <CheckCircle size={15} />
+                                      )}
+                                      Confirm Order
+                                    </motion.button>
+                                    <motion.button
+                                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                      disabled={updatingOrder === order._id}
+                                      onClick={() => updateOrderStatus(order._id, "Cancelled")}
+                                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-all shadow-sm"
+                                    >
+                                      <XCircle size={15} />
+                                      Cancel
+                                    </motion.button>
+                                  </>
+                                )}
+                                {order.orderStatus === "Confirmed" && (
+                                  <>
+                                    <motion.button
+                                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                      disabled={updatingOrder === order._id}
+                                      onClick={() => updateOrderStatus(order._id, "Out for Delivery")}
+                                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition-all shadow-sm"
+                                    >
+                                      {updatingOrder === order._id ? (
+                                        <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                      ) : (
+                                        <Truck size={15} />
+                                      )}
+                                      Send Out for Delivery
+                                    </motion.button>
+                                    <motion.button
+                                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                      disabled={updatingOrder === order._id}
+                                      onClick={() => updateOrderStatus(order._id, "Cancelled")}
+                                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-all shadow-sm"
+                                    >
+                                      <XCircle size={15} />
+                                      Cancel
+                                    </motion.button>
+                                  </>
+                                )}
+                                {order.orderStatus === "Out for Delivery" && (
                                   <motion.button
                                     whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                                     disabled={updatingOrder === order._id}
-                                    onClick={() => updateOrderStatus(order._id, "Out for Delivery")}
-                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 transition-all shadow-sm"
+                                    onClick={() => updateOrderStatus(order._id, "Delivered")}
+                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 transition-all shadow-sm"
                                   >
                                     {updatingOrder === order._id ? (
                                       <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                     ) : (
-                                      <Truck size={15} />
+                                      <CheckCircle size={15} />
                                     )}
-                                    Send Out for Delivery
+                                    Mark as Delivered
                                   </motion.button>
-                                  <motion.button
-                                    whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                                    disabled={updatingOrder === order._id}
-                                    onClick={() => updateOrderStatus(order._id, "Cancelled")}
-                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-all shadow-sm"
-                                  >
-                                    <XCircle size={15} />
-                                    Cancel Order
-                                  </motion.button>
-                                </>
-                              )}
-                              {order.orderStatus === "Out for Delivery" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                                  disabled={updatingOrder === order._id}
-                                  onClick={() => updateOrderStatus(order._id, "Delivered")}
-                                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 transition-all shadow-sm"
-                                >
-                                  {updatingOrder === order._id ? (
-                                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                  ) : (
-                                    <CheckCircle size={15} />
-                                  )}
-                                  Mark as Delivered
-                                </motion.button>
-                              )}
+                                )}
+                              </div>
                             </div>
                           )}
 

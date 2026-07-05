@@ -198,6 +198,10 @@ const CartPage = () => {
         onClose={() => setIsWhatsAppOpen(false)}
         cartItems={cartItems}
         total={totalPrice}
+        onOrderPlaced={() => {
+          clearCart();           // empty the cart
+          setIsWhatsAppOpen(false);
+        }}
       />
     </div>
   );

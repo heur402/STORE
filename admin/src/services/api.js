@@ -78,6 +78,11 @@ export const dashboardAPI = {
 export const orderAPI = {
   getAll: () => fetchAPI("/orders"),
   getById: (id) => fetchAPI(`/orders/${id}`),
+  // Admin manually logs a WhatsApp order
+  adminCreate: (data) => fetchAPI("/orders/admin", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
   updateStatus: (id, status) => fetchAPI(`/orders/${id}/status`, {
     method: "PUT",
     body: JSON.stringify({ status }),
@@ -85,6 +90,15 @@ export const orderAPI = {
   delete: (id) => fetchAPI(`/orders/${id}`, {
     method: "DELETE",
   }),
+};
+
+// Notification APIs
+export const notificationAPI = {
+  getAll: () => fetchAPI("/notifications"),
+  getUnreadCount: () => fetchAPI("/notifications/unread-count"),
+  markAsRead: (id) => fetchAPI(`/notifications/${id}/read`, { method: "PUT" }),
+  markAllAsRead: () => fetchAPI("/notifications/mark-all-read", { method: "PUT" }),
+  delete: (id) => fetchAPI(`/notifications/${id}`, { method: "DELETE" }),
 };
 
 // Client APIs

@@ -1,8 +1,10 @@
 // src/components/NiheMartCard.jsx
-// Clean product card inspired by NiheMart — image-first, price prominent
+// Clean product card — with Out of Stock + Low Stock badges
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Edit, Trash2 } from "lucide-react";
+
+const LOW_STOCK_THRESHOLD = 5; // mirrors backend default
 
 const NiheMartCard = ({ product, onEdit, onDelete, darkMode }) => {
   const [hovered, setHovered] = useState(false);
@@ -21,7 +23,8 @@ const NiheMartCard = ({ product, onEdit, onDelete, darkMode }) => {
       maximumFractionDigits: 0,
     }).format(val);
 
-  const isOutOfStock = product.stock === 0;
+  const isOutOfStock = product.stock === 0 || product.outOfStock;
+  const isLowStock = !isOutOfStock && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
   return (
     <motion.div
@@ -51,6 +54,15 @@ const NiheMartCard = ({ product, onEdit, onDelete, darkMode }) => {
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
             <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
               Out of Stock
+            </span>
+          </div>
+        )}
+
+        {/* Low stock badge */}
+        {isLowStock && (
+          <div className="absolute top-2 left-2">
+            <span className="bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+              Low Stock
             </span>
           </div>
         )}
@@ -118,8 +130,12 @@ const NiheMartCard = ({ product, onEdit, onDelete, darkMode }) => {
             {product.category}
           </span>
           {!isOutOfStock && (
-            <span className={`text-[10px] ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
-              {product.stock} left
+            <span className={`text-[10px] font-medium ${
+              isLowStock
+                ? "text-amber-500"
+                : darkMode ? "text-gray-500" : "text-gray-400"
+            }`}>
+              {isLowStock ? `⚠ ${product.stock} left` : `${product.stock} left`}
             </span>
           )}
         </div>

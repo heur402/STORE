@@ -1,8 +1,23 @@
 // controllers/orderController.js
+import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import {
+  checkAndNotifyStock,
+  notifyOrderCreated,
+} from "../services/notificationService.js";
 
-// Create a new order — works for both authenticated users and guests
+// ── Helper: update product stock flags after any stock change
+const syncProductStockFlags = async (product) => {
+  const isOutOfStock = product.stock <= 0;
+  product.outOfStock = isOutOfStock;
+  product.availabilityStatus = isOutOfStock ? "Out of Stock" : "In Stock";
+  await product.save();
+  // Fire notifications (each channel independently try/catches internally)
+  await checkAndNotifyStock(product);
+};
+
+// ── POST /api/orders — Create a new order (public, WhatsApp-sourced)
 export const createOrder = async (req, res) => {
   try {
     const {
@@ -22,22 +37,14 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "No order items" });
     }
 
-    // Check stock availability for each item
+    // Stock check (informational at creation — stock is only decremented on Confirmed)
     for (const item of orderItems) {
       const product = await Product.findById(item.product);
-      if (!product) {
-        return res.status(404).json({ message: `Product not found: ${item.name}` });
-      }
-      if (item.quantity <= 0) {
-        return res.status(400).json({ message: `Invalid quantity for ${item.name}` });
-      }
-      if (product.stock < item.quantity) {
-        return res.status(400).json({ message: `Insufficient stock for ${item.name}` });
-      }
+      if (!product) return res.status(404).json({ message: `Product not found: ${item.name}` });
+      if (item.quantity <= 0) return res.status(400).json({ message: `Invalid quantity for ${item.name}` });
     }
 
     const order = new Order({
-      // attach user if authenticated, otherwise leave null (guest order)
       user: req.user?._id || null,
       guestName: guestName || "",
       guestPhone: guestPhone || "",
@@ -54,13 +61,8 @@ export const createOrder = async (req, res) => {
     });
 
     const createdOrder = await order.save();
-
-    // Reduce stock immediately to prevent over-ordering
-    for (const item of orderItems) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity },
-      });
-    }
+    // In-app notification for new order (non-blocking)
+    notifyOrderCreated(createdOrder).catch(() => {});
 
     res.status(201).json(createdOrder);
   } catch (error) {
@@ -68,37 +70,188 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// Get order by ID
-export const getOrderById = async (req, res) => {
+// ── POST /api/orders/admin — Admin manually logs a WhatsApp order
+export const adminCreateOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate(
-      "user",
-      "name email"
-    );
+    const {
+      customerName,
+      customerPhone,
+      items, // [{ productId, productName, quantity, priceAtOrder }]
+      paymentMethod = "MTN",
+      deliveryAddress = {},
+      notes = "",
+    } = req.body;
 
+    if (!customerName?.trim()) return res.status(400).json({ message: "Customer name is required" });
+    if (!customerPhone?.trim()) return res.status(400).json({ message: "Customer phone is required" });
+    if (!items || items.length === 0) return res.status(400).json({ message: "At least one item is required" });
+
+    // Validate all products exist (no stock decrement yet — happens on Confirm)
+    for (const item of items) {
+      if (!item.productId) return res.status(400).json({ message: "Each item needs a productId" });
+      if (!item.quantity || item.quantity < 1) return res.status(400).json({ message: `Invalid quantity for ${item.productName}` });
+      const product = await Product.findById(item.productId);
+      if (!product || product.isDeleted) return res.status(404).json({ message: `Product not found: ${item.productName}` });
+    }
+
+    // Build orderItems in the existing schema shape
+    const orderItems = items.map((item) => ({
+      product: item.productId,
+      name: item.productName,
+      price: item.priceAtOrder,
+      quantity: item.quantity,
+    }));
+
+    const totalPrice = items.reduce((sum, i) => sum + i.priceAtOrder * i.quantity, 0);
+
+    const order = new Order({
+      guestName: customerName.trim(),
+      guestPhone: customerPhone.trim(),
+      orderItems,
+      deliveryAddress,
+      paymentMethod,
+      itemsPrice: totalPrice,
+      shippingPrice: 0,
+      taxPrice: 0,
+      totalPrice,
+      orderStatus: "Pending",
+      paymentStatus: "Pending",
+      cancellationReason: notes,
+    });
+
+    const createdOrder = await order.save();
+    notifyOrderCreated(createdOrder).catch(() => {});
+
+    res.status(201).json(createdOrder);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ── PUT /api/orders/:id/status — Update order status (Admin only)
+// Handles stock decrement (Pending → Confirmed) and restore (→ Cancelled)
+export const updateOrderStatus = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { status, paymentStatus, trackingNumber, carrier, cancellationReason } = req.body;
+    const order = await Order.findById(req.params.id).session(session);
     if (!order) {
+      await session.abortTransaction();
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res.json(order);
+    const prevStatus = order.orderStatus;
+
+    // ── STOCK DECREMENT: Pending → Confirmed
+    if (status === "Confirmed" && prevStatus === "Pending") {
+      const LOW = parseInt(process.env.LOW_STOCK_THRESHOLD || "5", 10);
+
+      // Pre-flight check — ensure ALL items have enough stock before touching anything
+      for (const item of order.orderItems) {
+        const product = await Product.findById(item.product).session(session);
+        if (!product) {
+          await session.abortTransaction();
+          return res.status(404).json({ message: `Product not found for item: ${item.name}` });
+        }
+        if (product.stock < item.quantity) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            message: `Not enough stock for "${product.name}" — only ${product.stock} left, need ${item.quantity}`,
+            productId: product._id,
+            productName: product.name,
+            available: product.stock,
+            requested: item.quantity,
+          });
+        }
+      }
+
+      // All good — decrement inside the transaction
+      const updatedProducts = [];
+      for (const item of order.orderItems) {
+        const product = await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { stock: -item.quantity } },
+          { new: true, session }
+        );
+        updatedProducts.push(product);
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // Update stock flags + notifications OUTSIDE the transaction (non-critical)
+      for (const product of updatedProducts) {
+        await syncProductStockFlags(product);
+      }
+    } else {
+      // ── STOCK RESTORE: any confirmed/in-flight → Cancelled
+      const wasActive = ["Confirmed", "Out for Delivery"].includes(prevStatus);
+      if (status === "Cancelled" && wasActive) {
+        for (const item of order.orderItems) {
+          await Product.findByIdAndUpdate(
+            item.product,
+            { $inc: { stock: item.quantity } },
+            { session }
+          );
+          // Re-sync flags (might go back in stock)
+          const product = await Product.findById(item.product);
+          if (product) {
+            product.outOfStock = product.stock <= 0;
+            product.availabilityStatus = product.stock <= 0 ? "Out of Stock" : "In Stock";
+            await product.save();
+          }
+        }
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+    }
+
+    // ── Apply status changes to the order
+    const updatedOrder = await Order.findById(req.params.id);
+
+    if (status) {
+      updatedOrder.orderStatus = status;
+      const legacyMap = {
+        Pending: "processing",
+        Confirmed: "confirmed",
+        "Out for Delivery": "shipped",
+        Delivered: "delivered",
+        Cancelled: "cancelled",
+      };
+      updatedOrder.status = legacyMap[status] || "processing";
+
+      if (status === "Delivered") {
+        updatedOrder.isDelivered = true;
+        updatedOrder.deliveredAt = Date.now();
+      }
+      if (status === "Cancelled" && cancellationReason) {
+        updatedOrder.cancellationReason = cancellationReason;
+      }
+    }
+
+    if (paymentStatus) {
+      updatedOrder.paymentStatus = paymentStatus;
+      if (paymentStatus === "Completed") {
+        updatedOrder.isPaid = true;
+        updatedOrder.paidAt = Date.now();
+      }
+    }
+    if (trackingNumber) updatedOrder.trackingNumber = trackingNumber;
+    if (carrier) updatedOrder.carrier = carrier;
+
+    const saved = await updatedOrder.save();
+    res.json(saved);
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get logged in user's orders
-export const getMyOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ user: req.user._id }).sort({
-      createdAt: -1,
-    });
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Get all orders (Admin)
+// ── GET /api/orders — All orders (Admin)
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
@@ -110,18 +263,32 @@ export const getAllOrders = async (req, res) => {
   }
 };
 
-// Update order to paid (Simulated Payment Verification)
+// ── GET /api/orders/:id
+export const getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate("user", "name email");
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ── GET /api/orders/myorders
+export const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ── PUT /api/orders/:id/pay
 export const updateOrderToPaid = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    // Simulate payment verification delay (e.g., waiting for MTN/Airtel API response)
-    console.log(`Verifying ${order.paymentMethod} payment for order ${order._id}...`);
-    await new Promise(resolve => setTimeout(resolve, 1500)); 
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
     order.isPaid = true;
     order.paidAt = Date.now();
@@ -129,149 +296,80 @@ export const updateOrderToPaid = async (req, res) => {
     order.paymentResult = {
       id: req.body.id || `SIM-${Date.now()}`,
       status: "COMPLETED",
-      email: req.body.email || "customer@example.com",
+      email: req.body.email || "",
       reference: req.body.reference || `REF-${Math.random().toString(36).substring(7).toUpperCase()}`,
     };
 
-    const updatedOrder = await order.save();
-    console.log(`Payment verified for order ${order._id}`);
-    res.json(updatedOrder);
+    const updated = await order.save();
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Update order to delivered
+// ── PUT /api/orders/:id/deliver
 export const updateOrderToDelivered = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    // Allow if user is admin OR the owner of the order
-    const isOwner = order.user.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 'admin';
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Not authorized to update this order" });
-    }
+    const isOwner = order.user?.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) return res.status(403).json({ message: "Not authorized" });
 
     order.orderStatus = "Delivered";
-    order.status = "delivered"; // Legacy support
+    order.status = "delivered";
     order.isDelivered = true;
     order.deliveredAt = Date.now();
 
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
+    const updated = await order.save();
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Update order status (Admin)
-export const updateOrderStatus = async (req, res) => {
-  try {
-    const { status, paymentStatus, trackingNumber, carrier, cancellationReason } = req.body;
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    if (status) {
-      const isNewlyCancelled = (status === "Cancelled" || status.toLowerCase() === "cancelled") && order.orderStatus !== "Cancelled";
-      
-      order.orderStatus = status;
-      // map to legacy status field (simplified flow: Pending → Out for Delivery → Delivered)
-      const statusMapping = {
-        "Pending":          "processing",
-        "Out for Delivery": "shipped",
-        "Delivered":        "delivered",
-        "Cancelled":        "cancelled",
-        // Keep Confirmed for backwards compat with any existing orders
-        "Confirmed":        "confirmed",
-      };
-      order.status = statusMapping[status] || "processing";
-      
-      if (status === "Delivered") {
-        order.isDelivered = true;
-        order.deliveredAt = Date.now();
-      } else if (isNewlyCancelled) {
-        // Restore stock
-        for (const item of order.orderItems) {
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { stock: item.quantity }
-          });
-        }
-      }
-    }
-    
-    if (paymentStatus) {
-      order.paymentStatus = paymentStatus;
-      if (paymentStatus === "Completed") {
-        order.isPaid = true;
-        order.paidAt = Date.now();
-      }
-    }
-
-    if (trackingNumber) order.trackingNumber = trackingNumber;
-    if (carrier) order.carrier = carrier;
-    if (cancellationReason) order.cancellationReason = cancellationReason;
-
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Cancel order
+// ── PUT /api/orders/:id/cancel
 export const cancelOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
+    if (["Delivered"].includes(order.orderStatus)) {
+      return res.status(400).json({ message: "Cannot cancel a delivered order" });
     }
 
-    // Only allow cancellation of confirmed or processing orders
-    if (order.status === "shipped" || order.status === "delivered") {
-      return res.status(400).json({
-        message: "Cannot cancel order that has been shipped or delivered",
-      });
-    }
-
-    if (order.status !== "cancelled") {
-      // Restore stock
+    // Restore stock if order was already confirmed
+    if (["Confirmed", "Out for Delivery"].includes(order.orderStatus)) {
       for (const item of order.orderItems) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { stock: item.quantity }
-        });
+        const product = await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { stock: item.quantity } },
+          { new: true }
+        );
+        if (product) {
+          product.outOfStock = product.stock <= 0;
+          product.availabilityStatus = product.stock <= 0 ? "Out of Stock" : "In Stock";
+          await product.save();
+        }
       }
     }
 
-    order.status = "cancelled";
     order.orderStatus = "Cancelled";
-    order.cancellationReason = req.body.cancellationReason || "Cancelled by user";
-
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
+    order.status = "cancelled";
+    order.cancellationReason = req.body.cancellationReason || "Cancelled";
+    const updated = await order.save();
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Delete order (Admin - hard delete)
+// ── DELETE /api/orders/:id (Admin hard delete)
 export const deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
+    if (!order) return res.status(404).json({ message: "Order not found" });
     await order.deleteOne();
     res.json({ message: "Order deleted successfully" });
   } catch (error) {
@@ -279,29 +377,25 @@ export const deleteOrder = async (req, res) => {
   }
 };
 
-// Get dashboard stats (Admin)
+// ── GET /api/orders/dashboard/stats
 export const getOrderStats = async (req, res) => {
   try {
     const totalOrders = await Order.countDocuments();
-    const confirmedOrders = await Order.countDocuments({ status: "confirmed" });
-    const processingOrders = await Order.countDocuments({ status: "processing" });
-    const shippedOrders = await Order.countDocuments({ status: "shipped" });
-    const deliveredOrders = await Order.countDocuments({ status: "delivered" });
-    const cancelledOrders = await Order.countDocuments({ status: "cancelled" });
+    const pending = await Order.countDocuments({ orderStatus: "Pending" });
+    const confirmed = await Order.countDocuments({ orderStatus: "Confirmed" });
+    const outForDelivery = await Order.countDocuments({ orderStatus: "Out for Delivery" });
+    const delivered = await Order.countDocuments({ orderStatus: "Delivered" });
+    const cancelled = await Order.countDocuments({ orderStatus: "Cancelled" });
 
-    const totalRevenue = await Order.aggregate([
+    const revenueAgg = await Order.aggregate([
       { $match: { isPaid: true } },
       { $group: { _id: null, total: { $sum: "$totalPrice" } } },
     ]);
 
     res.json({
-      totalOrders,
-      confirmedOrders,
-      processingOrders,
-      shippedOrders,
-      deliveredOrders,
-      cancelledOrders,
-      totalRevenue: totalRevenue[0]?.total || 0,
+      totalOrders, pending, confirmed, outForDelivery,
+      delivered, cancelled,
+      totalRevenue: revenueAgg[0]?.total || 0,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
